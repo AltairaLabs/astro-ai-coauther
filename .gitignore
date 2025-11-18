@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.local-doc-feedback.json
+.DS_Store
+.env
+
+# Playground artifacts (keep source files)
+playground/.astro/
+playground/dist/
+playground/.local-doc-feedback.json
+playground/node_modules/
+playground/src/env.d.ts

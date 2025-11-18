@@ -1,0 +1,47 @@
+{
+  "name": "astro-ai-coauthor",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "An Astro integration for developer-mode documentation review, metadata tracking, and AI-assisted documentation maintenance",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "documentation",
+    "ai",
+    "feedback",
+    "developer-tools"
+  ],
+  "author": "AltairaLabs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AltairaLabs/astro-ai-coauther.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AltairaLabs/astro-ai-coauther/issues"
+  },
+  "homepage": "https://github.com/AltairaLabs/astro-ai-coauther#readme",
+  "peerDependencies": {
+    "astro": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "astro": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
+}
