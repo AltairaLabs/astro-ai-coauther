@@ -4,6 +4,11 @@ An intelligent Astro integration that transforms your documentation workflow wit
 
 [![npm version](https://img.shields.io/npm/v/astro-ai-coauthor.svg)](https://www.npmjs.com/package/astro-ai-coauthor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AltairaLabs_astro-ai-coauther&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AltairaLabs_astro-ai-coauther)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=AltairaLabs_astro-ai-coauther&metric=coverage)](https://sonarcloud.io/summary/new_code?id=AltairaLabs_astro-ai-coauther)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AltairaLabs_astro-ai-coauther&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=AltairaLabs_astro-ai-coauther)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AltairaLabs_astro-ai-coauther&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=AltairaLabs_astro-ai-coauther)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=AltairaLabs_astro-ai-coauther&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=AltairaLabs_astro-ai-coauther)
 
 ---
 
@@ -55,7 +60,24 @@ export default defineConfig({
   integrations: [
     astroAICoauthor({
       enableFeedbackWidget: true,
-      feedbackStorePath: '.local-doc-feedback.json',
+      // Uses default file-based storage
+      enableMetadata: true,
+    }),
+  ],
+});
+```
+
+Or with a custom storage adapter:
+
+```javascript
+import { defineConfig } from 'astro/config';
+import astroAICoauthor, { FileStorageAdapter } from 'astro-ai-coauthor';
+
+export default defineConfig({
+  integrations: [
+    astroAICoauthor({
+      enableFeedbackWidget: true,
+      storage: new FileStorageAdapter('./docs/.feedback.json'),
       enableMetadata: true,
     }),
   ],
@@ -77,7 +99,7 @@ You'll see a floating feedback widget in the bottom-right corner (💬). Click i
 
 ### 4. View collected feedback
 
-Navigate to `/FeedbackDashboard` or check the `.local-doc-feedback.json` file in your project root.
+Navigate to `/_ai-coauthor/dashboard` or check the `.local-doc-feedback.json` file in your project root.
 
 ---
 
@@ -86,7 +108,8 @@ Navigate to `/FeedbackDashboard` or check the `.local-doc-feedback.json` file in
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `enableFeedbackWidget` | `boolean` | `true` | Show feedback widget in dev mode |
-| `feedbackStorePath` | `string` | `'.local-doc-feedback.json'` | Path to store feedback data |
+| `storage` | `FeedbackStorageAdapter` | `FileStorageAdapter` | Custom storage adapter for feedback |
+| `feedbackStorePath` | `string` | `'.local-doc-feedback.json'` | Path for file storage (deprecated, use `storage`) |
 | `enableMetadata` | `boolean` | `true` | Track documentation metadata |
 | `enableStaleDetection` | `boolean` | `false` | Enable stale doc detection (coming soon) |
 
@@ -97,7 +120,7 @@ astroAICoauthor({
   // Enable the feedback widget
   enableFeedbackWidget: true,
   
-  // Custom storage location
+  // Custom storage location (simple approach)
   feedbackStorePath: './docs/.feedback.json',
   
   // Enable metadata tracking
@@ -106,6 +129,207 @@ astroAICoauthor({
   // Future feature: stale detection
   enableStaleDetection: false,
 })
+```
+
+---
+
+## 🔌 Pluggable Storage System
+
+The integration uses a clean dependency injection pattern for storage, allowing you to implement custom storage backends.
+
+### Using the Default File Storage
+
+By default, feedback is stored in a local JSON file:
+
+```javascript
+import astroAICoauthor from 'astro-ai-coauthor';
+
+export default defineConfig({
+  integrations: [
+    astroAICoauthor({
+      feedbackStorePath: '.local-doc-feedback.json' // default
+    }),
+  ],
+});
+```
+
+### Implementing a Custom Storage Adapter
+
+Create a custom adapter by implementing the `FeedbackStorageAdapter` interface:
+
+```typescript
+import type { FeedbackStorageAdapter, FeedbackStorageEntry } from 'astro-ai-coauthor';
+
+class MyCustomStorageAdapter implements FeedbackStorageAdapter {
+  async save(entry: FeedbackStorageEntry): Promise<void> {
+    // Your custom save logic
+    await fetch('https://api.example.com/feedback', {
+      method: 'POST',
+      body: JSON.stringify(entry)
+    });
+  }
+
+  async loadAll(): Promise<FeedbackStorageEntry[]> {
+    // Your custom load logic
+    const response = await fetch('https://api.example.com/feedback');
+    return response.json();
+  }
+
+  async clear(): Promise<void> {
+    // Optional: clear all feedback
+    await fetch('https://api.example.com/feedback', {
+      method: 'DELETE'
+    });
+  }
+}
+```
+
+Then use it in your configuration:
+
+```javascript
+import astroAICoauthor from 'astro-ai-coauthor';
+import { MyCustomStorageAdapter } from './my-storage';
+
+export default defineConfig({
+  integrations: [
+    astroAICoauthor({
+      storage: new MyCustomStorageAdapter()
+    }),
+  ],
+});
+```
+
+### Example: GitHub Issues Adapter
+
+Store feedback as GitHub issues:
+
+```typescript
+import type { FeedbackStorageAdapter, FeedbackStorageEntry } from 'astro-ai-coauthor';
+import { Octokit } from '@octokit/rest';
+
+class GitHubIssuesAdapter implements FeedbackStorageAdapter {
+  private octokit: Octokit;
+  private owner: string;
+  private repo: string;
+
+  constructor(token: string, owner: string, repo: string) {
+    this.octokit = new Octokit({ auth: token });
+    this.owner = owner;
+    this.repo = repo;
+  }
+
+  async save(entry: FeedbackStorageEntry): Promise<void> {
+    await this.octokit.issues.create({
+      owner: this.owner,
+      repo: this.repo,
+      title: `Feedback: ${entry.page}`,
+      body: `
+**Page**: ${entry.page}
+**Category**: ${entry.category || 'general'}
+**Notes**: ${entry.notes || 'No notes'}
+**Timestamp**: ${new Date(entry.timestamp).toISOString()}
+      `.trim(),
+      labels: ['documentation', 'feedback']
+    });
+  }
+
+  async loadAll(): Promise<FeedbackStorageEntry[]> {
+    const { data: issues } = await this.octokit.issues.listForRepo({
+      owner: this.owner,
+      repo: this.repo,
+      labels: 'feedback',
+      state: 'all'
+    });
+
+    return issues.map(issue => ({
+      id: issue.id.toString(),
+      page: this.extractPage(issue.body || ''),
+      timestamp: new Date(issue.created_at).getTime(),
+      notes: issue.body || '',
+      category: 'general'
+    }));
+  }
+
+  private extractPage(body: string): string {
+    const match = body.match(/\*\*Page\*\*:\s*(.+)/);
+    return match ? match[1] : 'unknown';
+  }
+}
+
+// Usage:
+export default defineConfig({
+  integrations: [
+    astroAICoauthor({
+      storage: new GitHubIssuesAdapter(
+        process.env.GITHUB_TOKEN,
+        'myorg',
+        'myrepo'
+      )
+    }),
+  ],
+});
+```
+
+### Example: Cloudflare KV Adapter
+
+Store feedback in Cloudflare KV:
+
+```typescript
+import type { FeedbackStorageAdapter, FeedbackStorageEntry } from 'astro-ai-coauthor';
+
+class CloudflareKVAdapter implements FeedbackStorageAdapter {
+  private kvNamespace: KVNamespace;
+  private key: string;
+
+  constructor(kvNamespace: KVNamespace, key: string = 'feedback') {
+    this.kvNamespace = kvNamespace;
+    this.key = key;
+  }
+
+  async save(entry: FeedbackStorageEntry): Promise<void> {
+    const entries = await this.loadAll();
+    entries.push(entry);
+    await this.kvNamespace.put(this.key, JSON.stringify(entries));
+  }
+
+  async loadAll(): Promise<FeedbackStorageEntry[]> {
+    const data = await this.kvNamespace.get(this.key);
+    return data ? JSON.parse(data) : [];
+  }
+
+  async clear(): Promise<void> {
+    await this.kvNamespace.put(this.key, JSON.stringify([]));
+  }
+}
+
+// Usage in Cloudflare Pages:
+export default defineConfig({
+  integrations: [
+    astroAICoauthor({
+      storage: new CloudflareKVAdapter(env.MY_KV_NAMESPACE)
+    }),
+  ],
+});
+```
+
+### Storage Interface
+
+```typescript
+interface FeedbackStorageEntry {
+  id?: string;
+  timestamp: number;
+  page: string;
+  highlight?: string;
+  notes?: string;
+  category?: string;
+  [key: string]: any; // Allow custom fields
+}
+
+interface FeedbackStorageAdapter {
+  save(entry: FeedbackStorageEntry): Promise<void>;
+  loadAll(): Promise<FeedbackStorageEntry[]>;
+  clear?(): Promise<void>; // Optional
+}
 ```
 
 ---
@@ -144,9 +368,9 @@ Feedback is stored in JSON format:
 
 ### Accessing the Dashboard
 
-The feedback dashboard is automatically available at:
+The dashboard is automatically available at:
 
-```
+```text
 http://localhost:4321/_ai-coauthor/dashboard
 ```
 
@@ -166,10 +390,10 @@ astro-ai-coauthor/
 │   ├── index.ts                    # Main integration entry point
 │   ├── client/
 │   │   └── feedback-widget.js      # Feedback widget UI
-│   ├── middleware/
-│   │   └── feedback-middleware.ts  # API endpoint handler
 │   └── pages/
-│       └── FeedbackDashboard.astro # Dashboard page
+│       ├── _ai-coauthor/
+│       │   ├── feedback.ts         # API endpoint handler
+│       │   └── dashboard.astro     # Dashboard page
 ├── examples/
 │   └── basic-astro-usage.md        # Usage examples
 ├── package.json
@@ -252,7 +476,7 @@ npm run dev
 Then visit:
 - **`http://localhost:4321/`** - Playground home
 - **`http://localhost:4321/demo`** - Demo page with sample documentation
-- **`http://localhost:4321/FeedbackDashboard`** - View collected feedback
+- **`http://localhost:4321/_ai-coauthor/dashboard`** - View collected feedback
 
 The playground imports the integration from `../dist/index.js`, so make sure to rebuild the main package (`npm run build` in the root) after making changes.
 

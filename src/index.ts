@@ -1,4 +1,13 @@
 import type { AstroIntegration } from 'astro';
+import { fileURLToPath } from 'node:url';
+import {
+  FeedbackStorageAdapter,
+  FileStorageAdapter
+} from './storage';
+
+// Re-export storage types for consumers
+export type { FeedbackStorageAdapter, FeedbackStorageEntry } from './storage';
+export { FileStorageAdapter } from './storage';
 
 export interface AstroAICoauthorOptions {
   /**
@@ -8,10 +17,10 @@ export interface AstroAICoauthorOptions {
   enableFeedbackWidget?: boolean;
 
   /**
-   * Path to store local feedback data
-   * @default '.local-doc-feedback.json'
+   * Custom storage adapter for feedback data
+   * @default FileStorageAdapter with '.astro-doc-feedback.json'
    */
-  feedbackStorePath?: string;
+  storage?: FeedbackStorageAdapter;
 
   /**
    * Enable metadata tracking for documentation pages
@@ -37,39 +46,82 @@ export default function astroAICoauthor(
 ): AstroIntegration {
   const {
     enableFeedbackWidget = true,
-    feedbackStorePath = '.local-doc-feedback.json',
     enableMetadata = true,
     enableStaleDetection = false,
+    storage = new FileStorageAdapter(
+      process.env.ASTRO_COAUTHOR_FEEDBACK_PATH ?? '.astro-doc-feedback.json'
+    ),
   } = options;
+  
+  globalThis.__ASTRO_COAUTHOR__ = { storage };
 
   return {
     name: 'astro-ai-coauthor',
     hooks: {
-      'astro:config:setup': ({ injectScript, addMiddleware }) => {
-        // TODO: Inject feedback widget script in development mode
-        if (enableFeedbackWidget) {
-          // injectScript('page', 'import "/path/to/feedback-widget.js"');
+      'astro:config:setup': ({ command, injectScript, injectRoute, updateConfig }) => {
+        // Inject feedback widget script in development mode
+        if (command === 'dev' && enableFeedbackWidget) {
+          const widgetPath = fileURLToPath(
+            new URL('../src/client/feedback-widget.ts', import.meta.url)
+          ).replace('/dist/', '/');
+          
+          // Inject inline script that loads the feedback widget
+          injectScript('page', `
+            if (import.meta.env.MODE === 'development') {
+              import('${widgetPath}')
+                .catch(err => console.error('[astro-ai-coauthor] Failed to load feedback widget:', err));
+            }
+          `);
         }
 
-        // TODO: Add middleware for feedback handling
-        if (enableFeedbackWidget) {
-          // addMiddleware({ ... });
+        // Inject API routes for feedback (dev mode only - requires server)
+        if (command === 'dev' && enableFeedbackWidget) {
+          // Feedback API endpoint using storage adapter
+          injectRoute({
+            pattern: '/_ai-coauthor/feedback',
+            entrypoint: fileURLToPath(
+              new URL('../dist/virtual/feedback-endpoint.js', import.meta.url)
+            ),
+          });
+          
+          // Dashboard route (primary)
+          injectRoute({
+            pattern: '/_ai-coauthor/dashboard',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/dashboard.astro', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+
+          // Friendly alias used in playground/demo links
+          injectRoute({
+            pattern: '/FeedbackDashboard',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/dashboard.astro', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+          
+          // Force output mode to hybrid so API routes work in dev
+          updateConfig({
+            output: 'hybrid',
+          });
         }
 
-        // TODO: Setup metadata tracking
+        // Metadata tracking: Reserved for future implementation
+        // Will track documentation metadata such as last updated, author, etc.
         if (enableMetadata) {
-          // Metadata tracking will be implemented
+          // Placeholder for metadata tracking implementation
         }
 
-        // TODO: Setup stale detection
+        // Stale detection: Reserved for future implementation  
+        // Will detect outdated documentation based on git commits
         if (enableStaleDetection) {
-          // Stale detection will be implemented
+          // Placeholder for stale detection implementation
         }
       },
 
-      'astro:build:done': async ({ dir, pages }) => {
-        // TODO: Generate documentation metadata report
-        // Build complete
+      'astro:build:done': async ({ dir: _dir, pages: _pages }) => {
+        // Reserved for future: Generate documentation metadata report
+        // Will analyze built pages and generate quality metrics
       },
     },
   };

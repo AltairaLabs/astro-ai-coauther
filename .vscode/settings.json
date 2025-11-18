@@ -1,0 +1,6 @@
+{
+    "sonarlint.connectedMode.project": {
+        "connectionId": "altairalabs",
+        "projectKey": "AltairaLabs_astro-ai-coauther"
+    }
+}

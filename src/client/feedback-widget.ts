@@ -26,7 +26,7 @@ interface FeedbackData {
   // Widget state
   let isWidgetVisible = false;
   let feedbackData: FeedbackData = {
-    pageUrl: window.location.pathname,
+    pageUrl: globalThis.location.pathname,
     timestamp: new Date().toISOString(),
     rating: null,
     comment: '',
@@ -188,13 +188,15 @@ interface FeedbackData {
     });
 
     // Rating selection
-    ratingBtns.forEach((btn) => {
+    for (const btn of ratingBtns) {
       btn.addEventListener('click', () => {
-        ratingBtns.forEach((b) => b.classList.remove('selected'));
+        for (const b of ratingBtns) {
+          b.classList.remove('selected');
+        }
         btn.classList.add('selected');
-        feedbackData.rating = parseInt(btn.getAttribute('data-rating') || '0');
+        feedbackData.rating = Number.parseInt(btn.dataset.rating || '0', 10);
       });
-    });
+    }
 
     // Category selection
     categorySelect?.addEventListener('change', (e: Event) => {
@@ -226,17 +228,25 @@ interface FeedbackData {
     }
 
     try {
-      // TODO: Send feedback to middleware endpoint
+      // Send feedback to API endpoint
+      const payload = {
+        page: feedbackData.pageUrl,
+        notes: feedbackData.comment,
+        category: feedbackData.category,
+        rating: feedbackData.rating,
+      };
+
+      console.debug('[astro-ai-coauthor] Submitting feedback payload:', payload);
+
       const response = await fetch('/_ai-coauthor/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...feedbackData,
-          timestamp: new Date().toISOString(),
-        }),
+        body: JSON.stringify(payload),
       });
+
+      console.debug('[astro-ai-coauthor] Feedback submission response:', response.status);
 
       if (response.ok) {
         if (statusEl) {
@@ -270,16 +280,16 @@ interface FeedbackData {
    */
   function resetForm() {
     feedbackData = {
-      pageUrl: window.location.pathname,
+      pageUrl: globalThis.location.pathname,
       timestamp: new Date().toISOString(),
       rating: null,
       comment: '',
       category: 'general',
     };
 
-    document.querySelectorAll('.rating-btn').forEach((btn) => {
+    for (const btn of document.querySelectorAll('.rating-btn')) {
       btn.classList.remove('selected');
-    });
+    }
 
     const commentTextarea = document.getElementById('ai-coauthor-comment') as HTMLTextAreaElement | null;
     if (commentTextarea) commentTextarea.value = '';

@@ -1,6 +1,6 @@
 {
   "name": "astro-ai-coauthor",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "description": "An Astro integration for developer-mode documentation review, metadata tracking, and AI-assisted documentation maintenance",
   "main": "dist/index.js",
@@ -10,12 +10,20 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "src",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:playground": "cd playground && npm run build",
+    "prepublishOnly": "npm run build && npm run lint && npm run test && npm run test:playground"
   },
   "keywords": [
     "astro",
@@ -39,9 +47,13 @@
     "astro": "^4.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.19.25",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitest/coverage-v8": "^4.0.10",
     "astro": "^4.0.0",
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {}
+    "eslint": "^8.57.1",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.10"
+  }
 }

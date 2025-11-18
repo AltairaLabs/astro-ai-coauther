@@ -4,6 +4,10 @@ dist/
 .DS_Store
 .env
 
+# Test coverage
+coverage/
+.nyc_output/
+
 # Playground artifacts (keep source files)
 playground/.astro/
 playground/dist/

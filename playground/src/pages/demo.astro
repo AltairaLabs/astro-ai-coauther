@@ -265,18 +265,18 @@ pnpm add amazing-api</code></pre>
       <h3>Basic Usage</h3>
       <p>Here's a simple example to get you started:</p>
 
-      <pre><code>import { AmazingAPI } from 'amazing-api';
+      <pre><code>import &#123; AmazingAPI &#125; from 'amazing-api';
 
-const api = new AmazingAPI({
+const api = new AmazingAPI(&#123;
   apiKey: 'your-api-key',
   environment: 'production'
-});
+&#125;);
 
 // Fetch data
-const data = await api.getData({
+const data = await api.getData(&#123;
   limit: 10,
   sortBy: 'createdAt'
-});
+&#125;);
 
 console.log(data);</code></pre>
 
@@ -332,20 +332,20 @@ console.log(data);</code></pre>
       <h3>Error Handling</h3>
       <p>Our API uses standard HTTP status codes to indicate success or failure:</p>
 
-      <pre><code>try {
+      <pre><code>try &#123;
   const result = await api.createResource(data);
   console.log('Success:', result);
-} catch (error) {
-  if (error.status === 400) {
+&#125; catch (error) &#123;
+  if (error.status === 400) &#123;
     console.error('Bad request:', error.message);
-  } else if (error.status === 401) {
+  &#125; else if (error.status === 401) &#123;
     console.error('Unauthorized:', error.message);
-  } else if (error.status === 429) {
+  &#125; else if (error.status === 429) &#123;
     console.error('Rate limited:', error.message);
-  } else {
+  &#125; else &#123;
     console.error('Unexpected error:', error);
-  }
-}</code></pre>
+  &#125;
+&#125;</code></pre>
 
       <h3>Best Practices</h3>
       <ul>
