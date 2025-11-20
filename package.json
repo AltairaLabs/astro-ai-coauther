@@ -1,6 +1,6 @@
 {
   "name": "astro-ai-coauthor",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "description": "An Astro integration for developer-mode documentation review, metadata tracking, and AI-assisted documentation maintenance",
   "main": "dist/index.js",
