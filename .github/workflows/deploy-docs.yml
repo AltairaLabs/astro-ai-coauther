@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs-site/**'
+      - 'docs/**'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
@@ -38,21 +38,21 @@ jobs:
         run: npm run build
 
       - name: Install docs dependencies
-        run: cd docs-site && npm ci
+        run: cd docs && npm ci
 
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
 
       - name: Build docs site
-        run: cd docs-site && npm run build
+        run: cd docs && npm run build
         env:
           NODE_ENV: production
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs-site/dist
+          path: ./docs/dist
 
   deploy:
     environment:
