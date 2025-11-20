@@ -73,5 +73,10 @@
     "nyc": "^17.1.0",
     "typescript": "^5.0.0",
     "vitest": "^4.0.10"
+  },
+  "dependencies": {
+    "globby": "^16.0.0",
+    "gray-matter": "^4.0.3",
+    "ignore": "^7.0.5"
   }
 }

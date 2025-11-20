@@ -23,6 +23,29 @@ export type {
   FeedbackTask 
 } from './utils/export.js';
 
+// Re-export source context types and utilities for consumers
+export type {
+  SourceContext,
+  AICoauthorFrontmatter,
+  ContextDetectionResult,
+  SourceContextConfig,
+  ContextMapping,
+  FileTree,
+  DocumentationPage,
+  PageCluster,
+  MatchRule,
+} from './types/index.js';
+
+export {
+  detectSourceContext,
+  detectAllSourceContexts,
+  validateSourceContext,
+  saveSourceContext,
+  loadSourceContext,
+  removeAllSourceContexts,
+  defaultSourceContextConfig,
+} from './utils/source-context-detection.js';
+
 export interface AstroAICoauthorOptions {
   /**
    * Enable the feedback widget in development mode
