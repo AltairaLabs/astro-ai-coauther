@@ -294,4 +294,140 @@ describe('generateTasks', () => {
     const tasks = generateTasks([]);
     expect(tasks).toEqual([]);
   });
+
+  it('should mark high priority for low rating with 3+ entries', () => {
+    const entries: FeedbackStorageEntry[] = [
+      {
+        id: '1',
+        timestamp: Date.now(),
+        page: '/problem-page',
+        rating: 2,
+        category: 'clarity',
+        notes: 'Issue 1',
+      },
+      {
+        id: '2',
+        timestamp: Date.now() + 1000,
+        page: '/problem-page',
+        rating: 2,
+        category: 'accuracy',
+        notes: 'Issue 2',
+      },
+      {
+        id: '3',
+        timestamp: Date.now() + 2000,
+        page: '/problem-page',
+        rating: 1,
+        category: 'completeness',
+        notes: 'Issue 3',
+      },
+    ];
+
+    const tasks = generateTasks(entries);
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].priority).toBe('high'); // avg rating < 3 AND count >= 3
+    expect(tasks[0].issue).toContain('Low rating');
+  });
+
+  it('should handle multiple categories correctly', () => {
+    const entries: FeedbackStorageEntry[] = [
+      {
+        id: '1',
+        timestamp: Date.now(),
+        page: '/multi-issue',
+        rating: 4,
+        category: 'clarity',
+        notes: '',
+      },
+      {
+        id: '2',
+        timestamp: Date.now() + 1000,
+        page: '/multi-issue',
+        rating: 4,
+        category: 'accuracy',
+        notes: '',
+      },
+      {
+        id: '3',
+        timestamp: Date.now() + 2000,
+        page: '/multi-issue',
+        rating: 4,
+        category: 'completeness',
+        notes: '',
+      },
+    ];
+
+    const tasks = generateTasks(entries);
+    expect(tasks[0].issue).toContain('and 2 other issue(s)');
+  });
+});
+
+describe('CSV Escaping', () => {
+  it('should escape commas in CSV', () => {
+    const entries: FeedbackStorageEntry[] = [
+      {
+        id: '1',
+        timestamp: Date.now(),
+        page: '/test',
+        rating: 4,
+        notes: 'This has, a comma',
+      },
+    ];
+
+    const options: ExportOptions = { format: 'csv' };
+    const result = exportFeedback(entries, options);
+    expect(result).toContain('"This has, a comma"');
+  });
+
+  it('should escape quotes in CSV', () => {
+    const entries: FeedbackStorageEntry[] = [
+      {
+        id: '1',
+        timestamp: Date.now(),
+        page: '/test',
+        rating: 4,
+        notes: 'This has "quotes"',
+      },
+    ];
+
+    const options: ExportOptions = { format: 'csv' };
+    const result = exportFeedback(entries, options);
+    expect(result).toContain('This has ""quotes""');
+  });
+
+  it('should escape newlines in CSV', () => {
+    const entries: FeedbackStorageEntry[] = [
+      {
+        id: '1',
+        timestamp: Date.now(),
+        page: '/test',
+        rating: 4,
+        notes: 'Line 1\nLine 2',
+      },
+    ];
+
+    const options: ExportOptions = { format: 'csv' };
+    const result = exportFeedback(entries, options);
+    expect(result).toContain('"Line 1\nLine 2"');
+  });
+});
+
+describe('Markdown with Highlights', () => {
+  it('should include highlighted text in markdown', () => {
+    const entries: FeedbackStorageEntry[] = [
+      {
+        id: '1',
+        timestamp: Date.now(),
+        page: '/test',
+        rating: 4,
+        notes: 'Some feedback',
+        highlight: 'This is the highlighted text',
+      },
+    ];
+
+    const options: ExportOptions = { format: 'markdown' };
+    const result = exportFeedback(entries, options);
+    expect(result).toContain('*Highlighted text:*');
+    expect(result).toContain('This is the highlighted text');
+  });
 });
