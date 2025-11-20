@@ -45,7 +45,7 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Build docs site
-        run: cd docs && npm run build
+        run: cd docs && npm run build -- --site https://coauthor.altairalabs.ai --base /
         env:
           NODE_ENV: production
 

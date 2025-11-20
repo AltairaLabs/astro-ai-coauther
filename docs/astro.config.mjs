@@ -7,6 +7,7 @@ import astroAICoauthor from 'astro-ai-coauthor';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://coauthor.altairalabs.ai',
+  base: '/astro-ai-coauther',
   integrations: [
     mdx(),
     sitemap(),

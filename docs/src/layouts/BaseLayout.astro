@@ -5,6 +5,7 @@ interface Props {
 }
 
 const { title, description = 'An Astro integration for developer-mode documentation review and AI-assisted maintenance' } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
 <!doctype html>
@@ -173,15 +174,15 @@ const { title, description = 'An Astro integration for developer-mode documentat
     <header>
       <div class="container">
         <nav>
-          <a href="/astro-ai-coauther/" class="logo">🤖 Astro AI Coauthor</a>
-          <a href="/astro-ai-coauther/">Home</a>
-          <a href="/astro-ai-coauther/getting-started">Getting Started</a>
-          <a href="/astro-ai-coauther/features">Features</a>
-          <a href="/astro-ai-coauther/configuration">Configuration</a>
-          <a href="/astro-ai-coauther/api">API</a>
-          <a href="/astro-ai-coauther/development">Development</a>
-          <a href="/astro-ai-coauther/storage-adapters">Storage</a>
-          <a href="/astro-ai-coauther/e2e-testing">Testing</a>
+          <a href={`${base}/`} class="logo">🤖 Astro AI Coauthor</a>
+          <a href={`${base}/`}>Home</a>
+          <a href={`${base}/getting-started`}>Getting Started</a>
+          <a href={`${base}/features`}>Features</a>
+          <a href={`${base}/configuration`}>Configuration</a>
+          <a href={`${base}/api`}>API</a>
+          <a href={`${base}/development`}>Development</a>
+          <a href={`${base}/storage-adapters`}>Storage</a>
+          <a href={`${base}/e2e-testing`}>Testing</a>
           <a href="https://github.com/AltairaLabs/astro-ai-coauther" target="_blank">GitHub</a>
         </nav>
       </div>
