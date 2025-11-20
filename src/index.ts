@@ -9,6 +9,18 @@ import {
 export type { FeedbackStorageAdapter, FeedbackStorageEntry } from './storage';
 export { FileStorageAdapter } from './storage';
 
+// Re-export export utilities for consumers
+export { 
+  exportFeedback, 
+  generateAnalytics, 
+  generateTasks 
+} from './utils/export.js';
+export type { 
+  ExportOptions, 
+  AnalyticsData, 
+  FeedbackTask 
+} from './utils/export.js';
+
 export interface AstroAICoauthorOptions {
   /**
    * Enable the feedback widget in development mode
@@ -97,6 +109,14 @@ export default function astroAICoauthor(
             pattern: '/FeedbackDashboard',
             entrypoint: fileURLToPath(
               new URL('../src/pages/_ai-coauthor/dashboard.astro', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+
+          // Export API endpoint
+          injectRoute({
+            pattern: '/_ai-coauthor/export',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/export.ts', import.meta.url)
             ).replace('/dist/', '/'),
           });
           

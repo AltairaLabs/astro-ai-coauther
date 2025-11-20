@@ -26,6 +26,8 @@ As you write documentation, you notice issues but forget to fix them later. You 
 
 [![npm version](https://img.shields.io/npm/v/astro-ai-coauthor.svg)](https://www.npmjs.com/package/astro-ai-coauthor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CodeQL](https://github.com/AltairaLabs/astro-ai-coauther/actions/workflows/codeql.yml/badge.svg)](https://github.com/AltairaLabs/astro-ai-coauther/actions/workflows/codeql.yml)
+[![Dependabot Updates](https://github.com/AltairaLabs/astro-ai-coauther/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/AltairaLabs/astro-ai-coauther/actions/workflows/dependabot/dependabot-updates)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AltairaLabs_astro-ai-coauther&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AltairaLabs_astro-ai-coauther)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=AltairaLabs_astro-ai-coauther&metric=coverage)](https://sonarcloud.io/summary/new_code?id=AltairaLabs_astro-ai-coauther)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AltairaLabs_astro-ai-coauther&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=AltairaLabs_astro-ai-coauther)
@@ -36,21 +38,30 @@ As you write documentation, you notice issues but forget to fix them later. You 
 
 ## 🌟 Features
 
-### ✅ Currently Available
+### ✅ Currently Available (v0.0.3)
 
+#### Core Features
 - **📝 Dev-Mode Feedback Widget** - Floating widget in development mode for instant self-review
 - **💾 Local-First Storage** - File-based storage by default (`.local-doc-feedback.json`), no cloud required
-- **📊 Feedback Dashboard** - Beautiful interface to review all collected feedback at `/_ai-coauthor/dashboard`
+- **📊 Enhanced Dashboard** - Beautiful interface at `/_ai-coauthor/dashboard` with comprehensive analytics
 - **🔍 Category Filtering** - Organize feedback by accuracy, clarity, completeness, and more
 - **🏷️ Metadata Tracking** - Track documentation metadata for better organization
 - **🔌 Pluggable Adapters** - Extend with custom storage if needed (optional)
 
-### 🚧 Planned Features
+#### NEW in v0.0.3 - Productivity Features
+- **📥 Smart Export** - Export feedback in JSON, CSV, or Markdown formats
+- **📈 Advanced Analytics** - Page performance tracking, rating distributions, category breakdowns
+- **📊 Trend Visualization** - See feedback patterns over time with visual charts
+- **✅ Smart Task Generation** - Automatically prioritize pages that need attention
+- **🔍 Advanced Filtering** - Filter exports by page, category, rating, or date range
+- **📑 Page Performance Table** - Quick overview of all pages with status indicators
 
-- **⏰ Stale Documentation Detection** - Automatically flag outdated documentation
-- **🔗 CI Integration** - Run documentation quality checks in your CI pipeline
-- **🤖 LLM-Assisted Maintenance** - AI-powered suggestions for improving documentation
-- **📈 Analytics & Insights** - Track documentation quality trends over time
+### 🚧 Future Planned Features
+
+- **⏰ Stale Documentation Detection** - Automatically flag outdated documentation (v0.4.0)
+- **🤖 Local AI Integration** - Ollama/LM Studio support for privacy-first AI suggestions (v0.4.0)
+- **🔄 Workspace Sync** - Sync feedback across multiple machines (v0.4.0)
+- **🔗 CI Integration** - Run documentation quality checks in CI pipeline (v1.0+, if team features are needed)
 
 ---
 
@@ -94,13 +105,25 @@ Visit any page and click the feedback widget (💬) in the bottom-right corner t
 - Select a feedback category
 - Leave comments and suggestions
 
-### 4. View collected feedback
+### 4. View the Enhanced Dashboard
 
-Navigate to `/_ai-coauthor/dashboard` to see all collected feedback with:
+Navigate to `/_ai-coauthor/dashboard` to see:
 
+**Summary Statistics**
 - Total feedback count and average rating
-- Feedback grouped by page
-- Timestamp and category for each entry
+- Number of pages with feedback
+- Category distribution
+
+**Analytics & Insights**
+- Page performance table with status indicators
+- Feedback trends over time
+- Category breakdown visualization
+- Action items prioritized by urgency
+
+**Export Options**
+- Download feedback as JSON, CSV, or Markdown
+- Filter by page, category, rating, or date
+- Share reports with stakeholders
 
 ---
 
@@ -109,6 +132,8 @@ Navigate to `/_ai-coauthor/dashboard` to see all collected feedback with:
 - **[Configuration Guide](./docs/configuration.md)** - All configuration options
 - **[Custom Storage Adapters](./docs/storage-adapters.md)** - Implement custom storage backends
 - **[Development Guide](./docs/development.md)** - Contributing and local development
+- **[Testing Guide](./TESTING.md)** - Unit and E2E testing
+- **[E2E Testing Guide](./docs/e2e-testing.md)** - End-to-end testing with Playwright
 - **[Debugging Guide](./DEBUGGING.md)** - Debugging tips and tricks
 
 ---
@@ -142,41 +167,6 @@ Navigate to `/_ai-coauthor/dashboard` to see all collected feedback with:
 - **Track documentation debt** alongside code
 - **Keep it simple** - just install and use
 - **No external dependencies** or services needed
-
----
-
-## 🔮 Roadmap
-
-### Version 0.2.0 - Foundation
-
-- [ ] Stale documentation detection
-- [ ] Git commit tracking
-- [ ] Export feedback to CSV/JSON
-
-### Version 0.3.0 - Intelligence & Productivity
-
-**Focus: Enhance solo developer workflow**
-
-- [ ] Smart Export & Backup (CSV/JSON/Markdown reports)
-- [ ] Enhanced Dashboard Analytics (trends, heatmaps, insights)
-- [ ] Smart Reminders & Task Generation (convert feedback to TODOs)
-- [ ] Local AI Integration (Ollama/LM Studio for privacy-first suggestions)
-- [ ] Workspace Sync (across multiple machines)
-
-### Version 1.0.0 - AI-Powered Improvements
-
-- [ ] Advanced LLM-assisted documentation rewrites
-- [ ] Automated fix suggestions with diffs
-- [ ] Documentation quality scoring algorithm
-- [ ] Historical analytics and trend tracking
-- [ ] Plugin system for custom storage adapters
-
-### Future (If Demand Emerges)
-
-- Team collaboration features
-- Cloud storage options
-- CI/CD integration
-- Real-time notifications
 
 ---
 

@@ -1,6 +1,10 @@
 # Testing
 
-This project uses [Vitest](https://vitest.dev/) for unit testing with comprehensive coverage requirements.
+This project uses a comprehensive testing strategy:
+- **[Vitest](https://vitest.dev/)** for unit testing
+- **[Playwright](https://playwright.dev/)** for end-to-end testing
+
+See also: [E2E Testing Guide](./docs/e2e-testing.md) for detailed E2E testing documentation.
 
 ## Coverage Requirements
 
@@ -11,33 +15,62 @@ This project uses [Vitest](https://vitest.dev/) for unit testing with comprehens
 
 ## Test Suites
 
-### 1. Integration Tests (`integration.test.ts`)
-Tests the main Astro integration functionality:
+### Unit Tests (85 tests)
+
+**1. Integration Tests** (`integration.test.ts`)
 - Integration configuration and options
-- Hook registration (`astro:config:setup`, `astro:build:done`)
-- Script injection in development mode
-- Route injection for feedback API and dashboard
+- Hook registration and lifecycle
+- Script/route injection
 - Build process handling
 
-**Coverage**: 19 tests covering all integration scenarios
+**2. Feedback API Tests** (`feedback-endpoint.test.ts`)
+- POST/GET endpoint functionality
+- Data validation and error handling
+- Storage adapter integration
 
-### 2. Feedback API Tests (`feedback-api.test.ts`)
-Tests the API route endpoints:
-- POST endpoint for saving feedback
-- GET endpoint for retrieving feedback
-- Validation of feedback data
-- File system operations
-- Error handling (read/write failures, JSON parsing)
+**3. Storage Tests** (`storage.test.ts`)
+- File storage adapter operations
+- Data persistence and retrieval
+- Error scenarios
 
-**Coverage**: 11 tests covering all API scenarios
+**4. Feedback Widget Tests** (`feedback-widget.test.ts`)
+- Widget rendering and interactions
+- Form validation
+- API submission
+
+**5. Export Tests** (`export.test.ts`) - NEW in v0.0.3
+- Export to JSON, CSV, Markdown
+- Filtering and data transformation
+- Analytics generation
+- Task generation
+
+### E2E Tests (16 tests) - NEW in v0.0.3
+
+**Dashboard Tests** (7 tests)
+- Page loading and rendering
+- Export button functionality
+- Download verification
+- Statistics display
+
+**Feedback Widget Tests** (4 tests)
+- Widget interactions
+- Form submission
+- Validation errors
+
+**API Tests** (5 tests)
+- Export endpoints
+- Analytics endpoint
+- Content-Type validation
 
 ## Running Tests
 
+### Unit Tests
+
 ```bash
-# Run all tests once
+# Run all unit tests
 npm test
 
-# Run tests in watch mode
+# Run in watch mode
 npm run test:watch
 
 # Generate coverage report
@@ -45,6 +78,26 @@ npm run test:coverage
 
 # Run playground integration tests
 npm run test:playground
+```
+
+### E2E Tests
+
+```bash
+# Run all E2E tests (headless)
+npm run test:e2e
+
+# Run with UI mode (interactive)
+npm run test:e2e:ui
+
+# Run in headed mode (see browser)
+npm run test:e2e:headed
+```
+
+### Run All Tests
+
+```bash
+# Run both unit and E2E tests
+npm run test:all
 ```
 
 ## Test Structure

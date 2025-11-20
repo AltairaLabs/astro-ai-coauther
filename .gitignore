@@ -8,6 +8,11 @@ dist/
 coverage/
 .nyc_output/
 
+# Playwright E2E tests
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Playground artifacts (keep source files)
 playground/.astro/
 playground/dist/

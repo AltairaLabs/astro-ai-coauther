@@ -1,5 +1,5 @@
 ---
-// Feedback Dashboard - View all collected feedback
+// Feedback Dashboard - View all collected feedback with analytics
 
 // Ensure this page renders at request time so it can read feedback storage
 export const prerender = false;
@@ -10,25 +10,36 @@ let feedbackData: any = {
   lastUpdated: new Date().toISOString(),
 };
 
-try {
-  // Fetch from API endpoint - simpler and more reliable
-  const url = new URL('/_ai-coauthor/feedback', Astro.url || 'http://localhost:4321');
-  console.log('🟣 [DASHBOARD] Fetching from:', url.toString());
-  const response = await fetch(url);
-  console.log('🟣 [DASHBOARD] Response status:', response.status);
-  feedbackData = await response.json();
-  console.log('🟣 [DASHBOARD] Loaded entries:', feedbackData.entries?.length);
-} catch (error) {
-  console.error('🟣 [DASHBOARD] Failed to load feedback:', error);
-  console.error('🟣 [DASHBOARD] Error details:', error.stack);
-}
-
-const stats = {
-  totalFeedback: feedbackData.entries?.length || 0,
-  averageRating: feedbackData.entries?.length 
-    ? (feedbackData.entries.reduce((sum: number, entry: any) => sum + (entry.rating || 0), 0) / feedbackData.entries.length).toFixed(1)
-    : 'N/A',
+let analytics: any = {
+  totalFeedback: 0,
+  averageRating: 0,
+  categoryBreakdown: {},
+  pageBreakdown: {},
+  ratingDistribution: {},
+  trendData: [],
 };
+
+let tasks: any[] = [];
+
+try {
+  // Fetch feedback data
+  const feedbackUrl = new URL('/_ai-coauthor/feedback', Astro.url || 'http://localhost:4321');
+  const feedbackResponse = await fetch(feedbackUrl);
+  feedbackData = await feedbackResponse.json();
+
+  // Fetch analytics data
+  const analyticsUrl = new URL('/_ai-coauthor/export?action=analytics', Astro.url || 'http://localhost:4321');
+  const analyticsResponse = await fetch(analyticsUrl);
+  analytics = await analyticsResponse.json();
+
+  // Fetch generated tasks
+  const tasksUrl = new URL('/_ai-coauthor/export?action=tasks', Astro.url || 'http://localhost:4321');
+  const tasksResponse = await fetch(tasksUrl);
+  const tasksData = await tasksResponse.json();
+  tasks = tasksData.tasks || [];
+} catch (error) {
+  console.error('🟣 [DASHBOARD] Failed to load data:', error);
+}
 
 // Group feedback by page
 const feedbackByPage = feedbackData.entries?.reduce((acc: any, entry: any) => {
@@ -177,15 +188,205 @@ const feedbackByPage = feedbackData.entries?.reduce((acc: any, entry: any) => {
     <div class="stats">
       <div class="stat-card">
         <div class="stat-label">Total Feedback</div>
-        <div class="stat-value">{stats.totalFeedback}</div>
+        <div class="stat-value">{analytics.totalFeedback}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Average Rating</div>
-        <div class="stat-value">{stats.averageRating}</div>
+        <div class="stat-value">{analytics.averageRating > 0 ? analytics.averageRating.toFixed(1) : 'N/A'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pages with Feedback</div>
+        <div class="stat-value">{Object.keys(analytics.pageBreakdown).length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Categories</div>
+        <div class="stat-value">{Object.keys(analytics.categoryBreakdown).length}</div>
       </div>
     </div>
 
-    {stats.totalFeedback === 0 ? (
+    <!-- Export Controls -->
+    <div style="background: #f7fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+      <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: #1a202c;">📥 Export Feedback</h2>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <button onclick="exportData('json')" style="
+          padding: 0.75rem 1.5rem;
+          background: #4F46E5;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+        ">
+          Export JSON
+        </button>
+        <button onclick="exportData('csv')" style="
+          padding: 0.75rem 1.5rem;
+          background: #059669;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+        ">
+          Export CSV
+        </button>
+        <button onclick="exportData('markdown')" style="
+          padding: 0.75rem 1.5rem;
+          background: #DC2626;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+        ">
+          Export Markdown
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Items / Tasks -->
+    {tasks.length > 0 && (
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: #92400e;">
+          ⚠️ Action Items ({tasks.length})
+        </h2>
+        {tasks.map((task: any) => (
+          <div style="background: white; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+              <div>
+                <span style={`
+                  display: inline-block;
+                  padding: 0.25rem 0.75rem;
+                  border-radius: 9999px;
+                  font-size: 0.75rem;
+                  font-weight: 600;
+                  text-transform: uppercase;
+                  ${task.priority === 'high' ? 'background: #fee2e2; color: #991b1b;' : 
+                    task.priority === 'medium' ? 'background: #fed7aa; color: #9a3412;' :
+                    'background: #e5e7eb; color: #374151;'}
+                `}>
+                  {task.priority}
+                </span>
+                <strong style="margin-left: 0.75rem; color: #1f2937;">{task.page}</strong>
+              </div>
+              <span style="color: #6b7280; font-size: 0.875rem;">
+                {task.feedbackCount} feedback items
+              </span>
+            </div>
+            <p style="margin: 0; color: #4b5563; font-size: 0.875rem;">
+              {task.issue}
+            </p>
+          </div>
+        ))}
+      </div>
+    )}
+
+    <!-- Category Breakdown -->
+    {Object.keys(analytics.categoryBreakdown).length > 0 && (
+      <div style="background: #f7fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: #1a202c;">📊 Category Breakdown</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          {Object.entries(analytics.categoryBreakdown).map(([category, count]: [string, any]) => (
+            <div style="background: white; padding: 1rem; border-radius: 6px; border: 1px solid #e5e7eb;">
+              <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 0.25rem; text-transform: capitalize;">
+                {category}
+              </div>
+              <div style="font-size: 2rem; font-weight: bold; color: #1f2937;">
+                {count}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Trends Section -->
+    {analytics.trendData && analytics.trendData.length > 1 && (
+      <div style="background: #f7fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: #1a202c;">📈 Feedback Trends</h2>
+        <div style="background: white; padding: 1.5rem; border-radius: 6px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {analytics.trendData.slice(-7).map((trend: any) => {
+              const maxCount = Math.max(...analytics.trendData.map((t: any) => t.count));
+              const barWidth = (trend.count / maxCount) * 100;
+              return (
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                  <div style="min-width: 100px; color: #6b7280; font-size: 0.875rem;">
+                    {new Date(trend.date).toLocaleDateString()}
+                  </div>
+                  <div style="flex: 1; background: #f3f4f6; border-radius: 4px; height: 32px; position: relative;">
+                    <div style={`
+                      background: linear-gradient(to right, #4F46E5, #7C3AED);
+                      height: 100%;
+                      border-radius: 4px;
+                      width: ${barWidth}%;
+                      display: flex;
+                      align-items: center;
+                      padding: 0 0.75rem;
+                      color: white;
+                      font-size: 0.875rem;
+                      font-weight: 500;
+                    `}>
+                      {trend.count} items
+                    </div>
+                  </div>
+                  <div style="min-width: 60px; text-align: right; color: #1f2937; font-weight: 500;">
+                    {trend.avgRating.toFixed(1)}★
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <p style="margin-top: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+          Showing feedback volume and average rating for the last {Math.min(7, analytics.trendData.length)} days
+        </p>
+      </div>
+    )}
+
+    <!-- Page Performance -->
+    {Object.keys(analytics.pageBreakdown).length > 0 && (
+      <div style="background: #f7fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: #1a202c;">📑 Page Performance</h2>
+        <div style="background: white; border-radius: 6px; border: 1px solid #e5e7eb; overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                <th style="padding: 0.75rem; text-align: left; font-size: 0.875rem; color: #6b7280; font-weight: 600;">Page</th>
+                <th style="padding: 0.75rem; text-align: center; font-size: 0.875rem; color: #6b7280; font-weight: 600;">Feedback Count</th>
+                <th style="padding: 0.75rem; text-align: center; font-size: 0.875rem; color: #6b7280; font-weight: 600;">Avg Rating</th>
+                <th style="padding: 0.75rem; text-align: center; font-size: 0.875rem; color: #6b7280; font-weight: 600;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(analytics.pageBreakdown)
+                .sort(([, a]: [string, any], [, b]: [string, any]) => b.count - a.count)
+                .map(([page, data]: [string, any]) => {
+                  const status = data.avgRating >= 4 ? '✅' : data.avgRating >= 3 ? '⚠️' : '❌';
+                  const statusColor = data.avgRating >= 4 ? '#059669' : data.avgRating >= 3 ? '#d97706' : '#dc2626';
+                  return (
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                      <td style="padding: 0.75rem; font-size: 0.875rem; color: #1f2937;">{page}</td>
+                      <td style="padding: 0.75rem; text-align: center; font-size: 0.875rem; color: #6b7280;">{data.count}</td>
+                      <td style="padding: 0.75rem; text-align: center; font-size: 0.875rem; font-weight: 600; color: #1f2937;">
+                        {data.avgRating.toFixed(1)} ★
+                      </td>
+                      <td style={`padding: 0.75rem; text-align: center; font-size: 1.25rem; color: ${statusColor};`}>
+                        {status}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    {analytics.totalFeedback === 0 ? (
       <div class="empty-state">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
@@ -194,32 +395,42 @@ const feedbackByPage = feedbackData.entries?.reduce((acc: any, entry: any) => {
         <p>Feedback will appear here once users start submitting reviews.</p>
       </div>
     ) : (
-      Object.entries(feedbackByPage).map(([pageUrl, entries]: [string, any]) => (
-        <div class="page-section">
-          <div class="page-header">
-            📄 {pageUrl}
-          </div>
-          {entries.map((entry: any) => (
-            <div class="feedback-card">
-              <div class="feedback-header">
-                <div class="rating">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <span class={i <= entry.rating ? 'star' : 'star empty'}>★</span>
-                  ))}
-                </div>
-                <div class="timestamp">
-                  {new Date(entry.timestamp).toLocaleString()}
-                </div>
-              </div>
-              <div class="category">{entry.category || 'general'}</div>
-              {(entry.notes || entry.comment) && (
-                <div class="comment">{entry.notes || entry.comment}</div>
-              )}
+      <div>
+        <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: #1a202c;">💬 All Feedback</h2>
+        {Object.entries(feedbackByPage).map(([pageUrl, entries]: [string, any]) => (
+          <div class="page-section">
+            <div class="page-header">
+              📄 {pageUrl}
             </div>
-          ))}
-        </div>
-      ))
+            {entries.map((entry: any) => (
+              <div class="feedback-card">
+                <div class="feedback-header">
+                  <div class="rating">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <span class={i <= entry.rating ? 'star' : 'star empty'}>★</span>
+                    ))}
+                  </div>
+                  <div class="timestamp">
+                    {new Date(entry.timestamp).toLocaleString()}
+                  </div>
+                </div>
+                <div class="category">{entry.category || 'general'}</div>
+                {(entry.notes || entry.comment) && (
+                  <div class="comment">{entry.notes || entry.comment}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     )}
   </div>
+
+  <script is:inline>
+    function exportData(format) {
+      const url = '/_ai-coauthor/export?action=export&format=' + format;
+      window.location.href = url;
+    }
+  </script>
 </body>
 </html>

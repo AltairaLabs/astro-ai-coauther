@@ -1,6 +1,6 @@
 {
   "name": "astro-ai-coauthor",
-  "version": "0.0.3",
+  "version": "0.0.2",
   "type": "module",
   "description": "An Astro integration for developer-mode documentation review, metadata tracking, and AI-assisted documentation maintenance",
   "main": "dist/index.js",
@@ -22,7 +22,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
     "test:playground": "cd playground && npm run build",
+    "test:all": "npm run test && npm run test:e2e",
     "prepublishOnly": "npm run build && npm run lint && npm run test && npm run test:playground"
   },
   "keywords": [
@@ -47,15 +51,23 @@
     "astro": "^4.0.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
+    "@playwright/test": "^1.56.1",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^20.19.25",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitest/coverage-v8": "^4.0.10",
     "astro": "^4.0.0",
+    "babel-plugin-istanbul": "^7.0.1",
     "eslint": "^8.57.1",
     "happy-dom": "^20.0.10",
+    "istanbul-lib-coverage": "^3.2.2",
     "jsdom": "^27.2.0",
+    "nyc": "^17.1.0",
     "typescript": "^5.0.0",
     "vitest": "^4.0.10"
   }
