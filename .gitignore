@@ -21,4 +21,10 @@ playground/node_modules/
 playground/src/env.d.ts
 playground/.astro-doc-feedback.json
 
+# Docs site artifacts
+docs-site/.astro/
+docs-site/dist/
+docs-site/.local-doc-feedback.json
+docs-site/node_modules/
+
 local-backlog/

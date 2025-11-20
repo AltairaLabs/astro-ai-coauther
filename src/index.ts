@@ -1,13 +1,15 @@
 import type { AstroIntegration } from 'astro';
 import { fileURLToPath } from 'node:url';
-import {
+import type {
   FeedbackStorageAdapter,
+} from './storage/FeedbackStorageAdapter.js';
+import {
   FileStorageAdapter
-} from './storage';
+} from './storage/FileStorageAdapter.js';
 
 // Re-export storage types for consumers
-export type { FeedbackStorageAdapter, FeedbackStorageEntry } from './storage';
-export { FileStorageAdapter } from './storage';
+export type { FeedbackStorageAdapter, FeedbackStorageEntry } from './storage/FeedbackStorageAdapter.js';
+export { FileStorageAdapter } from './storage/FileStorageAdapter.js';
 
 // Re-export export utilities for consumers
 export { 
