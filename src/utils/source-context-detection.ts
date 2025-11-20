@@ -46,7 +46,16 @@ export async function detectSourceContext(
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
   
   // Build file tree
-  const fileTree = await buildFileTree(fullConfig.projectRoot, fullConfig.excludePatterns);
+  // Use projectRoot (actual project root) for .gitignore, but scan fullConfig.projectRoot (source dir)
+  const fileTree = await buildFileTree(
+    fullConfig.projectRoot, 
+    fullConfig.excludePatterns,
+    projectRoot // Look for .gitignore in actual project root
+  );
+  
+  // Get all available files for keyword matching
+  const { flattenFileTree } = await import('./file-tree');
+  const availableFiles = flattenFileTree(fileTree);
   
   // Create matcher with custom rules
   const matcher = new ContextMatcher();
@@ -55,9 +64,12 @@ export async function detectSourceContext(
   const patternResult = await matcher.match(docPath, projectRoot, fileTree);
   
   // Extract keywords and match to files
-  const page = await readDocumentationPage(path.resolve(projectRoot, docPath));
-  const keywords = extractKeywords(page.content, page.title);
-  const keywordMatches = matchKeywordsToFiles(keywords, patternResult.sourceContext.files);
+  // Parse docContent directly instead of reading from disk
+  const matter = (await import('gray-matter')).default;
+  const { data, content: body } = matter(docContent);
+  const title = (data.title as string) || 'Untitled';
+  const keywords = extractKeywords(body, title);
+  const keywordMatches = matchKeywordsToFiles(keywords, availableFiles);
   
   // Combine results
   const allFiles = new Set([

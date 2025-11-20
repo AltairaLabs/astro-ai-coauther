@@ -11,7 +11,7 @@ import { getFilesMatching, flattenFileTree } from './file-tree';
  * Context matcher for detecting source files from documentation pages
  */
 export class ContextMatcher {
-  private rules: MatchRule[] = [];
+  private readonly rules: MatchRule[];
   
   constructor(customRules: MatchRule[] = []) {
     this.rules = [...DEFAULT_RULES, ...customRules];
@@ -52,19 +52,7 @@ export class ContextMatcher {
         ruleMatches++;
         totalConfidence += rule.confidence;
         
-        for (const sourcePattern of rule.sourcePatterns) {
-          const matchedPaths = await this.findMatches(sourcePattern, allFiles, projectRoot);
-          
-          for (const matchedPath of matchedPaths) {
-            if (matchedPath.endsWith('/')) {
-              folders.add(matchedPath);
-              reasoning.push(`Matched folder ${matchedPath} via rule: ${rule.docPattern}`);
-            } else {
-              files.add(matchedPath);
-              reasoning.push(`Matched file ${matchedPath} via rule: ${rule.docPattern}`);
-            }
-          }
-        }
+        await this.processRuleMatches(rule, allFiles, projectRoot, files, folders, reasoning);
       }
     }
     
@@ -85,6 +73,32 @@ export class ContextMatcher {
       reasoning,
     };
   }
+
+  /**
+   * Process matches for a single rule
+   */
+  private async processRuleMatches(
+    rule: MatchRule,
+    allFiles: string[],
+    projectRoot: string,
+    files: Set<string>,
+    folders: Set<string>,
+    reasoning: string[]
+  ): Promise<void> {
+    for (const sourcePattern of rule.sourcePatterns) {
+      const matchedPaths = await this.findMatches(sourcePattern, allFiles, projectRoot);
+      
+      for (const matchedPath of matchedPaths) {
+        if (matchedPath.endsWith('/')) {
+          folders.add(matchedPath);
+          reasoning.push(`Matched folder ${matchedPath} via rule: ${rule.docPattern}`);
+        } else {
+          files.add(matchedPath);
+          reasoning.push(`Matched file ${matchedPath} via rule: ${rule.docPattern}`);
+        }
+      }
+    }
+  }
   
   /**
    * Check if path matches pattern
@@ -96,9 +110,9 @@ export class ContextMatcher {
     
     // Simple glob-style matching
     const regexPattern = pattern
-      .replace(/\./g, '\\.')
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.');
+      .replaceAll('.', String.raw`\.`)
+      .replaceAll('*', '.*')
+      .replaceAll('?', '.');
     
     return new RegExp(regexPattern, 'i').test(testPath);
   }
@@ -128,10 +142,10 @@ export class ContextMatcher {
       // Fallback to simple matching
       const regex = new RegExp(
         pattern
-          .replace(/\./g, '\\.')
-          .replace(/\*\*/g, '.*')
-          .replace(/\*/g, '[^/]*')
-          .replace(/\?/g, '[^/]'),
+          .replaceAll('.', String.raw`\.`)
+          .replaceAll('**', '.*')
+          .replaceAll('*', '[^/]*')
+          .replaceAll('?', '[^/]'),
         'i'
       );
       
@@ -197,7 +211,7 @@ const DEFAULT_RULES: MatchRule[] = [
   
   // Feature-specific docs (match by name)
   {
-    docPattern: /(.+)\.md$/,
+    docPattern: /([^/]+)\.md$/,
     sourcePatterns: ['src/$1.ts', 'src/$1/', 'src/**/$1.ts'],
     confidence: 0.5,
   },
@@ -231,10 +245,10 @@ export function extractKeywords(content: string, title: string): string[] {
   }
   
   // Extract heading keywords
-  const headingMatches = content.matchAll(/^#{1,6}\s+(.+)$/gm);
+  const headingMatches = content.matchAll(/^#{1,6}\s+(.+?)$/gm);
   for (const match of headingMatches) {
     const heading = match[1]
-      .replace(/[`*_]/g, '')
+      .replaceAll(/[`*_]/g, '')
       .toLowerCase();
     
     heading

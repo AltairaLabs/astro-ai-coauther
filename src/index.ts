@@ -144,6 +144,22 @@ export default function astroAICoauthor(
               new URL('../src/pages/_ai-coauthor/export.ts', import.meta.url)
             ).replace('/dist/', '/'),
           });
+
+          // Source context detection API endpoint
+          injectRoute({
+            pattern: '/_ai-coauthor/detect-context',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/detect-context.ts', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+
+          // Source context save API endpoint
+          injectRoute({
+            pattern: '/_ai-coauthor/save-context',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/save-context.ts', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
           
           // Force output mode to hybrid so API routes work in dev
           updateConfig({

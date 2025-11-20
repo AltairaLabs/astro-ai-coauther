@@ -1,0 +1,13 @@
+# Build outputs
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+
+# Local files
+.local-doc-feedback.json
+.DS_Store
+
+# Logs
+*.log

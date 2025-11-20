@@ -85,8 +85,39 @@ export async function updateSourceContext(
       lastUpdated: new Date().toISOString(),
     };
     
-    // Write back to file
-    const updated = matter.stringify(body, data);
+    // Write back to file - use default gray-matter stringify
+    let updated = matter.stringify(body, data);
+    
+    // Post-process to ensure string values are quoted for Astro compatibility
+    // This is necessary because Astro's frontmatter parser is stricter than standard YAML
+    const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+    const frontmatterMatch = frontmatterRegex.exec(updated);
+    if (frontmatterMatch) {
+      let frontmatter = frontmatterMatch[1];
+      
+      // Quote unquoted string values (but not booleans, numbers, or arrays)
+      const valueRegex = /^(\s*)([a-zA-Z_]\w*): ([^'"\n].*?)$/gm;
+      frontmatter = frontmatter.replaceAll(valueRegex, (_match, indent, key, value) => {
+        const trimmedValue = value.trim();
+        // Don't quote if it's already quoted, a boolean, a number, or starts with object/array
+        const startsWithQuote = /^['"]/.exec(trimmedValue);
+        const isNumber = /^-?\d+(\.\d+)?$/.exec(trimmedValue);
+        if (
+          startsWithQuote || // already quoted
+          trimmedValue === 'true' || trimmedValue === 'false' || // boolean
+          trimmedValue === 'null' || trimmedValue === 'undefined' || // null/undefined
+          isNumber || // number
+          trimmedValue.startsWith('{') || trimmedValue.startsWith('[') // object/array
+        ) {
+          return `${indent}${key}: ${value}`;
+        }
+        // Quote the value
+        return `${indent}${key}: '${trimmedValue}'`;
+      });
+      
+      updated = `---\n${frontmatter}\n---${updated.slice(frontmatterMatch[0].length)}`;
+    }
+    
     await fs.writeFile(filePath, updated, 'utf-8');
   } catch (error: unknown) {
     if (error instanceof Error) {

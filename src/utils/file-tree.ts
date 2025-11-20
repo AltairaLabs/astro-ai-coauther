@@ -14,16 +14,19 @@ import type { FileTree } from '../types';
  * 
  * @param rootPath - Root directory to scan
  * @param excludePatterns - Glob patterns to exclude
+ * @param gitignoreRoot - Optional root directory for .gitignore (defaults to rootPath)
  * @returns Promise resolving to file tree structure
  */
 export async function buildFileTree(
   rootPath: string,
-  excludePatterns: string[] = []
+  excludePatterns: string[] = [],
+  gitignoreRoot?: string
 ): Promise<FileTree> {
   const absoluteRoot = path.resolve(rootPath);
+  const absoluteGitignoreRoot = gitignoreRoot ? path.resolve(gitignoreRoot) : absoluteRoot;
   
-  // Load .gitignore patterns
-  const gitignorePatterns = await loadGitignorePatterns(absoluteRoot);
+  // Load .gitignore patterns from the specified root
+  const gitignorePatterns = await loadGitignorePatterns(absoluteGitignoreRoot);
   const allExcludePatterns = [...excludePatterns, ...gitignorePatterns];
   
   // Build tree recursively

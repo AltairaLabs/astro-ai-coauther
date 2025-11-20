@@ -1,0 +1,188 @@
+---
+title: 'Source Context Detection Demo'
+description: 'Test page for source context mapping feature'
+aiCoauthor:
+  sourceContext:
+    files: []
+    folders: []
+    globs: []
+    exclude:
+      - '**/*.test.ts'
+      - '**/*.spec.ts'
+      - '**/node_modules/**'
+      - '**/dist/**'
+      - '**/.astro/**'
+    manual: false
+    confidence: 'low'
+    lastUpdated: '2025-11-20T19:30:44.746Z'
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Source Context Detection Demo</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      line-height: 1.6;
+      background: #f9fafb;
+    }
+    h1 { color: #667eea; margin-bottom: 0.5em; }
+    h2 { color: #374151; margin-top: 2em; }
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border-left: 4px solid #667eea;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .info {
+      background: #eff6ff;
+      border-left-color: #3b82f6;
+    }
+    .success {
+      background: #f0fdf4;
+      border-left-color: #10b981;
+    }
+    .warning {
+      background: #fffbeb;
+      border-left-color: #f59e0b;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      margin: 8px 8px 8px 0;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 14px;
+    }
+    code {
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+    .result-section {
+      margin-top: 20px;
+    }
+    .file-list {
+      list-style: none;
+      padding: 0;
+    }
+    .file-list li {
+      padding: 8px 12px;
+      margin: 4px 0;
+      background: #f9fafb;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .confidence {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .confidence-high {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .confidence-medium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .confidence-low {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .loading {
+      display: inline-block;
+      margin-left: 8px;
+    }
+    .reasoning {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .reasoning li {
+      margin: 8px 0;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Source Context Detection Demo</h1>
+  
+  <div class="card info">
+    <h2>About This Demo</h2>
+    <p>
+      This page demonstrates the source context detection feature. Use the <strong>AI Coauthor Widget</strong> at the bottom right of the page to:
+    </p>
+    <ul>
+      <li><strong>Detect Source Context:</strong> Click "Detect" to analyze which source files this page documents</li>
+      <li><strong>Save to Frontmatter:</strong> Click "Save" to persist the detected context to this page's frontmatter</li>
+      <li><strong>View Results:</strong> See confidence levels, matched files, and reasoning</li>
+    </ul>
+    <p style="margin-top: 1em; padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+      💡 <strong>Tip:</strong> Look for the floating widget button in the bottom-right corner. It provides full detection and save functionality!
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Example Code</h2>
+    <p>Here's how the detection API works:</p>
+    <pre><code>import &#123; detectSourceContext &#125; from 'astro-ai-coauthor';
+
+// Detect source context for this page
+const result = await detectSourceContext(
+  'source-context-demo.astro',
+  pageContent,
+  process.cwd()
+);
+
+// Result includes:
+// - sourceContext.files: Array of detected files
+// - sourceContext.folders: Array of detected folders
+// - confidence: 'high' | 'medium' | 'low'
+// - reasoning: Array of explanation strings</code></pre>
+  </div>
+
+  <div class="card info">
+    <h2>How It Works</h2>
+    <ol>
+      <li><strong>Convention-Based Matching:</strong> Uses patterns like "configuration" → *config*.ts</li>
+      <li><strong>Keyword Extraction:</strong> Analyzes page title and content for relevant terms</li>
+      <li><strong>File Tree Analysis:</strong> Searches project structure for matching files</li>
+      <li><strong>Confidence Scoring:</strong> Rates detection quality as high/medium/low</li>
+      <li><strong>Frontmatter Storage:</strong> Saves mapping in namespaced aiCoauthor field</li>
+    </ol>
+  </div>
+
+
+</body>
+</html>
