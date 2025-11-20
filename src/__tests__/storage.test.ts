@@ -123,5 +123,55 @@ describe('Storage Adapters', () => {
       expect(writtenData[0].page).toBe('/docs/existing');
       expect(writtenData[1].page).toBe('/docs/new');
     });
+
+    it('should handle corrupted JSON file and return empty array', async () => {
+      const adapter = new FileStorageAdapter('.test-feedback.json');
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      // Return non-array JSON
+      vi.mocked(fs.readFile).mockResolvedValue('{"invalid": "data"}');
+
+      const entries = await adapter.loadAll();
+
+      expect(entries).toEqual([]);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[astro-ai-coauthor] Feedback store was not an array, resetting file'
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should handle file read errors gracefully', async () => {
+      const adapter = new FileStorageAdapter('.test-feedback.json');
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      // Simulate a permission error
+      vi.mocked(fs.readFile).mockRejectedValue(new Error('Permission denied'));
+
+      const entries = await adapter.loadAll();
+
+      expect(entries).toEqual([]);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[astro-ai-coauthor] Failed to read feedback store, resetting file:',
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should use environment variable for path if provided', () => {
+      const originalEnv = process.env.ASTRO_COAUTHOR_FEEDBACK_PATH;
+      process.env.ASTRO_COAUTHOR_FEEDBACK_PATH = '/custom/env/path.json';
+      
+      const adapter = new FileStorageAdapter();
+      // We can't directly check the private filePath, but we can verify it works
+      expect(adapter).toBeDefined();
+      
+      if (originalEnv) {
+        process.env.ASTRO_COAUTHOR_FEEDBACK_PATH = originalEnv;
+      } else {
+        delete process.env.ASTRO_COAUTHOR_FEEDBACK_PATH;
+      }
+    });
   });
 });

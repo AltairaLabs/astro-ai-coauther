@@ -47,12 +47,15 @@
     "astro": "^4.0.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^20.19.25",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitest/coverage-v8": "^4.0.10",
     "astro": "^4.0.0",
     "eslint": "^8.57.1",
+    "happy-dom": "^20.0.10",
+    "jsdom": "^27.2.0",
     "typescript": "^5.0.0",
     "vitest": "^4.0.10"
   }
