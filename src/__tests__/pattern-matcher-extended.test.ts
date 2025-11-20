@@ -244,4 +244,33 @@ import { FileStorageAdapter } from './storage/FileStorageAdapter';
       expect(matches[0].confidence).toBeCloseTo(expectedConfidence, 2);
     });
   });
+
+  describe('Glob pattern security', () => {
+    it('should handle patterns with backslashes (Windows paths)', () => {
+      const keywords = ['test'];
+      const files = [String.raw`src\windows\path.ts`];
+      
+      // Should not throw or cause regex errors
+      expect(() => matchKeywordsToFiles(keywords, files)).not.toThrow();
+      
+      const matches = matchKeywordsToFiles(keywords, files);
+      expect(matches).toBeDefined();
+    });
+
+    it('should handle patterns with dots and special characters', () => {
+      const keywords = ['config'];
+      const files = ['src/config.test.ts', 'src/my.config.ts'];
+      
+      const matches = matchKeywordsToFiles(keywords, files);
+      expect(matches.length).toBe(2);
+    });
+
+    it('should handle patterns with multiple consecutive backslashes', () => {
+      const keywords = ['file'];
+      const files = [String.raw`C:\\Users\\test\\file.ts`];
+      
+      // Should not throw or cause regex errors
+      expect(() => matchKeywordsToFiles(keywords, files)).not.toThrow();
+    });
+  });
 });

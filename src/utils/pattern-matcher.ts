@@ -110,6 +110,7 @@ export class ContextMatcher {
     
     // Simple glob-style matching
     const regexPattern = pattern
+      .replaceAll('\\', '\\\\')
       .replaceAll('.', String.raw`\.`)
       .replaceAll('*', '.*')
       .replaceAll('?', '.');
@@ -142,6 +143,7 @@ export class ContextMatcher {
       // Fallback to simple matching
       const regex = new RegExp(
         pattern
+          .replaceAll('\\', '\\\\')
           .replaceAll('.', String.raw`\.`)
           .replaceAll('**', '.*')
           .replaceAll('*', '[^/]*')

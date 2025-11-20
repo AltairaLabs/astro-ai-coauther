@@ -584,10 +584,16 @@ describe('Feedback Widget', () => {
         reasoning: [],
       };
 
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      // Mock both detect and save fetch calls
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response);
 
       const detectBtn = document.getElementById('source-detect-btn');
       detectBtn!.click();

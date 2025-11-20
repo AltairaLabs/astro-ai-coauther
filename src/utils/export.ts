@@ -200,8 +200,8 @@ function exportToMarkdown(entries: FeedbackStorageEntry[]): string {
  * Escape special characters for CSV
  */
 function escapeCSV(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replaceAll('"', '""')}"`;
+  if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\\')) {
+    return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '""')}"`;
   }
   return value;
 }
