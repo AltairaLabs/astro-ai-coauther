@@ -27,9 +27,9 @@
     "test:e2e:headed": "playwright test --headed",
     "test:playground": "cd playground && npm run build",
     "test:all": "npm run test && npm run test:e2e",
-    "docs:dev": "cd docs-site && npm run dev",
-    "docs:build": "npm run build && cd docs-site && npm run build",
-    "docs:preview": "cd docs-site && npm run preview",
+    "docs:dev": "cd docs && npm run dev",
+    "docs:build": "cd docs && npm run build",
+    "docs:preview": "cd docs && npm run preview",
     "prepublishOnly": "npm run build && npm run lint && npm run test && npm run test:playground"
   },
   "keywords": [
