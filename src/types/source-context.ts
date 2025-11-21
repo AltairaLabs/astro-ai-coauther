@@ -6,6 +6,11 @@
  */
 
 /**
+ * Confidence level for source context detection
+ */
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+
+/**
  * Source context information stored in frontmatter
  */
 export interface SourceContext {
@@ -28,7 +33,7 @@ export interface SourceContext {
   lastUpdated?: string;
   
   /** Confidence level of auto-detection */
-  confidence?: 'high' | 'medium' | 'low';
+  confidence?: ConfidenceLevel;
 }
 
 /**
@@ -57,7 +62,7 @@ export interface ContextDetectionResult {
   sourceContext: SourceContext;
   
   /** Confidence level of detection */
-  confidence: 'high' | 'medium' | 'low';
+  confidence: ConfidenceLevel;
   
   /** Human-readable reasoning for each mapping */
   reasoning: string[];
@@ -121,6 +126,12 @@ export interface SourceContextConfig {
   
   /** Namespace in frontmatter (default: 'aiCoauthor') */
   frontmatterNamespace?: string;
+  
+  /** LLM provider configuration for intelligent detection */
+  llmProvider?: import('./llm').LLMProviderConfig;
+  
+  /** Fallback to rule-based detection if LLM unavailable */
+  fallbackToRules?: boolean;
 }
 
 /**
@@ -170,7 +181,7 @@ export interface ContextMapping {
   
   /** Detection metadata */
   metadata: {
-    confidence: 'high' | 'medium' | 'low';
+    confidence: ConfidenceLevel;
     detectedAt: string;
     manual: boolean;
   };

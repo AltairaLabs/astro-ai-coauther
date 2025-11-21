@@ -11,6 +11,7 @@
   "files": [
     "dist",
     "src",
+    "prompts",
     "README.md",
     "LICENSE"
   ],
@@ -75,8 +76,15 @@
     "vitest": "^4.0.10"
   },
   "dependencies": {
+    "@langchain/anthropic": "^1.1.1",
+    "@langchain/core": "^1.0.6",
+    "@langchain/langgraph": "^1.0.2",
+    "@langchain/openai": "^1.1.2",
+    "@promptpack/langchain": "^0.1.0",
     "globby": "^16.0.0",
     "gray-matter": "^4.0.3",
-    "ignore": "^7.0.5"
+    "ignore": "^7.0.5",
+    "langchain": "^1.0.6",
+    "winston": "^3.18.3"
   }
 }

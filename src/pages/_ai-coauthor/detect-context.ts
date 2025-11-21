@@ -6,11 +6,15 @@
 import type { APIRoute } from 'astro';
 import { detectSourceContext } from '../../utils/source-context-detection';
 import * as path from 'node:path';
+import { getLogger } from '../../utils/logger';
+
+const logger = getLogger();
 
 // Force this endpoint to be server-rendered, not prerendered
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
+  logger.start('detect-context', 'Received detection request');
   try {
     const text = await request.text();
     
@@ -31,27 +35,39 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
     
-    // Get project root from environment or use cwd
+    logger.debug('detect-context', `Doc path: ${docPath}, content length: ${docContent.length}`);
+    
+    // Get configuration from global context (set by integration)
+    const globalConfig = (globalThis as any).__ASTRO_COAUTHOR__;
     const projectRoot = process.env.ASTRO_PROJECT_ROOT || process.cwd();
+    logger.debug('detect-context', `Project root: ${projectRoot}`);
     
     // Map URL path to a relative file path for the documentation
     const urlPath = docPath.startsWith('/') ? docPath.slice(1) : docPath;
     
-    // Assume docs are in src/pages or similar
-    // The integration will need to configure this
-    const docsRoot = process.env.DOCS_ROOT || 'src/pages';
+    // Get docs root from config or environment
+    const docsRoot = globalConfig?.docsRoot || process.env.DOCS_ROOT || 'src/pages';
     const docFilePath = path.join(docsRoot, `${urlPath}.astro`);
     
-    // Source root defaults to src/
-    const sourceRoot = path.resolve(projectRoot, process.env.SOURCE_ROOT || 'src');
+    // Get source root from config
+    const sourceRoot = path.resolve(
+      projectRoot, 
+      globalConfig?.sourceRoot || process.env.SOURCE_ROOT || 'src'
+    );
     
-    // Run detection
+    // Get LLM provider config if available
+    const llmProvider = globalConfig?.llmProvider;
+    logger.info('detect-context', `LLM provider: ${llmProvider ? llmProvider.type : 'none (fallback)'}`);
+    
+    // Run detection with LLM if configured
+    logger.info('detect-context', `Starting detection for ${docPath}`);
     const result = await detectSourceContext(
       docFilePath,
       docContent,
       projectRoot,
       {
         projectRoot: sourceRoot,
+        llmProvider,
         excludePatterns: [
           '**/*.test.ts',
           '**/*.spec.ts',
@@ -60,6 +76,13 @@ export const POST: APIRoute = async ({ request }) => {
           '**/.astro/**',
         ],
       }
+    );
+    
+    logger.success(
+      'detect-context',
+      `Detection complete - Files: ${result.sourceContext.files.length}, ` +
+      `Folders: ${result.sourceContext.folders.length}, ` +
+      `Confidence: ${result.confidence}`
     );
     
     return new Response(
@@ -71,7 +94,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
     
   } catch (error: unknown) {
-    console.error('[ai-coauthor] Detection error:', error);
+    logger.error('detect-context', 'Detection error:', error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error' 

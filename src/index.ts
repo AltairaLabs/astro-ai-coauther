@@ -6,6 +6,11 @@ import type {
 import {
   FileStorageAdapter
 } from './storage/FileStorageAdapter.js';
+import type {
+  OpenAIConfig,
+  AnthropicConfig,
+  LocalModelConfig,
+} from './types/index.js';
 
 // Re-export storage types for consumers
 export type { FeedbackStorageAdapter, FeedbackStorageEntry } from './storage/FeedbackStorageAdapter.js';
@@ -34,6 +39,7 @@ export type {
   DocumentationPage,
   PageCluster,
   MatchRule,
+  ConfidenceLevel,
 } from './types/index.js';
 
 export {
@@ -45,6 +51,29 @@ export {
   removeAllSourceContexts,
   defaultSourceContextConfig,
 } from './utils/source-context-detection.js';
+
+// Re-export LLM types and utilities for consumers
+export type {
+  LLMProviderType,
+  LLMProviderConfig,
+  OpenAIConfig,
+  AnthropicConfig,
+  LocalModelConfig,
+  LLMProvider,
+  LLMDetectionRequest,
+  LLMDetectionResponse,
+  LLMDetectionStats,
+} from './types/index.js';
+
+export {
+  createLLMProvider,
+  isLLMAvailable,
+} from './utils/llm/provider-factory.js';
+
+export { LLMCache } from './utils/llm/cache.js';
+
+export type { DetectionJob, JobStatus } from './utils/llm/job-queue.js';
+export { getJobQueue } from './utils/llm/job-queue.js';
 
 export interface AstroAICoauthorOptions {
   /**
@@ -70,6 +99,33 @@ export interface AstroAICoauthorOptions {
    * @default false
    */
   enableStaleDetection?: boolean;
+
+  /**
+   * LLM provider configuration for AI-powered source context detection
+   * @default undefined (uses rule-based detection)
+   */
+  llmProvider?: OpenAIConfig | AnthropicConfig | LocalModelConfig;
+
+  /**
+   * Source code root directory for detection
+   * @default './src'
+   */
+  sourceRoot?: string;
+
+  /**
+   * Documentation root directory
+   * @default 'src/pages'
+   */
+  docsRoot?: string;
+
+  /**
+   * Logging configuration
+   * @default { level: 'info', prefix: 'ai-coauthor' }
+   */
+  logging?: {
+    level?: 'none' | 'error' | 'warn' | 'info' | 'debug';
+    prefix?: string;
+  };
 }
 
 /**
@@ -85,12 +141,25 @@ export default function astroAICoauthor(
     enableFeedbackWidget = true,
     enableMetadata = true,
     enableStaleDetection = false,
+    llmProvider,
+    sourceRoot = './src',
+    docsRoot = 'src/pages',
     storage = new FileStorageAdapter(
       process.env.ASTRO_COAUTHOR_FEEDBACK_PATH ?? '.astro-doc-feedback.json'
     ),
+    logging = { level: 'info', prefix: 'ai-coauthor' },
   } = options;
   
-  globalThis.__ASTRO_COAUTHOR__ = { storage };
+  globalThis.__ASTRO_COAUTHOR__ = { 
+    storage,
+    llmProvider,
+    sourceRoot,
+    docsRoot,
+    logging: {
+      level: logging.level || 'info',
+      prefix: logging.prefix || 'ai-coauthor',
+    },
+  };
 
   return {
     name: 'astro-ai-coauthor',
@@ -158,6 +227,22 @@ export default function astroAICoauthor(
             pattern: '/_ai-coauthor/save-context',
             entrypoint: fileURLToPath(
               new URL('../src/pages/_ai-coauthor/save-context.ts', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+
+          // Batch source context detection API endpoint
+          injectRoute({
+            pattern: '/_ai-coauthor/detect-all-contexts',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/detect-all-contexts.ts', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+
+          // Job status API endpoint
+          injectRoute({
+            pattern: '/_ai-coauthor/job-status',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/job-status.ts', import.meta.url)
             ).replace('/dist/', '/'),
           });
           

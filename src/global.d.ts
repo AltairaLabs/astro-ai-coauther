@@ -1,9 +1,21 @@
 import type { FeedbackStorageAdapter } from './storage';
+import type { LLMProviderConfig } from './types';
+
+export type LogLevel = 'none' | 'error' | 'warn' | 'info' | 'debug';
+
+export interface LoggingConfig {
+  level: LogLevel;
+  prefix?: string;
+}
 
 declare global {
   // eslint-disable-next-line no-var
   var __ASTRO_COAUTHOR__: {
     storage: FeedbackStorageAdapter;
+    llmProvider?: LLMProviderConfig;
+    sourceRoot?: string;
+    docsRoot?: string;
+    logging?: LoggingConfig;
   };
 }
 

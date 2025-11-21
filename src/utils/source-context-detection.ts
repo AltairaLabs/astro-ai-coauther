@@ -9,6 +9,7 @@ import type {
   ContextDetectionResult,
   SourceContext,
   SourceContextConfig,
+  LLMDetectionRequest,
 } from '../types';
 import { buildFileTree } from './file-tree';
 import { ContextMatcher, extractKeywords, matchKeywordsToFiles } from './pattern-matcher';
@@ -18,6 +19,10 @@ import {
   readDocumentationPage,
   removeAICoauthorData,
 } from './frontmatter';
+import { createLLMProvider, isLLMAvailable } from './llm/provider-factory';
+import { getLogger } from './logger';
+
+const logger = getLogger();
 
 const DEFAULT_CONFIG: SourceContextConfig = {
   enabled: true,
@@ -26,6 +31,7 @@ const DEFAULT_CONFIG: SourceContextConfig = {
   excludePatterns: ['**/*.test.ts', '**/*.spec.ts', '**/*.test.js', '**/*.spec.js'],
   confidenceThreshold: 0.6,
   frontmatterNamespace: 'aiCoauthor',
+  fallbackToRules: true,
 };
 
 /**
@@ -43,41 +49,204 @@ export async function detectSourceContext(
   projectRoot: string,
   config: Partial<SourceContextConfig> = {}
 ): Promise<ContextDetectionResult> {
+  logger.debug('source-detection', `Starting detection for ${docPath}`);
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
   
-  // Build file tree
-  // Use projectRoot (actual project root) for .gitignore, but scan fullConfig.projectRoot (source dir)
-  const fileTree = await buildFileTree(
-    fullConfig.projectRoot, 
-    fullConfig.excludePatterns,
-    projectRoot // Look for .gitignore in actual project root
+  const { fileTree, availableFiles, availableFolders, title, body } = await prepareDetectionContext(
+    docPath,
+    docContent,
+    projectRoot,
+    fullConfig
   );
   
-  // Get all available files for keyword matching
-  const { flattenFileTree } = await import('./file-tree');
+  // Try LLM-powered detection first if configured
+  if (fullConfig.llmProvider) {
+    const llmResult = await tryLLMDetection(
+      fullConfig,
+      projectRoot,
+      docPath,
+      body,
+      title,
+      availableFiles,
+      availableFolders
+    );
+    
+    if (llmResult) {
+      return llmResult;
+    }
+  } else {
+    logger.debug('source-detection', 'No LLM provider configured, using rule-based detection');
+  }
+  
+  // Fallback to rule-based detection
+  return performRuleBasedDetection(
+    docPath,
+    projectRoot,
+    fileTree,
+    body,
+    title,
+    availableFiles,
+    fullConfig
+  );
+}
+
+/**
+ * Prepare detection context (file tree, available files, etc.)
+ */
+async function prepareDetectionContext(
+  docPath: string,
+  docContent: string,
+  projectRoot: string,
+  fullConfig: SourceContextConfig
+) {
+  logger.debug('source-detection', `Building file tree from ${fullConfig.projectRoot}`);
+  const fileTree = await buildFileTree(
+    fullConfig.projectRoot,
+    fullConfig.excludePatterns,
+    projectRoot
+  );
+  
+  const { flattenFileTree, extractFolders } = await import('./file-tree');
   const availableFiles = flattenFileTree(fileTree);
+  const availableFolders = extractFolders(fileTree);
+  logger.debug('source-detection', `Found ${availableFiles.length} files, ${availableFolders.length} folders`);
   
-  // Create matcher with custom rules
-  const matcher = new ContextMatcher();
-  
-  // Use pattern matching
-  const patternResult = await matcher.match(docPath, projectRoot, fileTree);
-  
-  // Extract keywords and match to files
-  // Parse docContent directly instead of reading from disk
   const matter = (await import('gray-matter')).default;
   const { data, content: body } = matter(docContent);
   const title = (data.title as string) || 'Untitled';
+  logger.debug('source-detection', `Doc title: "${title}"`);
+  
+  return { fileTree, availableFiles, availableFolders, title, body };
+}
+
+/**
+ * Attempt LLM-powered detection
+ */
+async function tryLLMDetection(
+  fullConfig: SourceContextConfig,
+  projectRoot: string,
+  docPath: string,
+  body: string,
+  title: string,
+  availableFiles: string[],
+  availableFolders: string[]
+): Promise<ContextDetectionResult | null> {
+  const llmProvider = fullConfig.llmProvider;
+  if (!llmProvider) {
+    return null;
+  }
+  
+  logger.info('source-detection', `Attempting LLM-powered detection with ${llmProvider.type}`);
+  const llmAvailable = await isLLMAvailable(llmProvider, projectRoot);
+  
+  if (llmAvailable) {
+    logger.debug('source-detection', `LLM provider ${llmProvider.type} is available`);
+    
+    try {
+      const provider = createLLMProvider(llmProvider, projectRoot);
+      logger.debug('source-detection', 'LLM provider created successfully');
+      
+      const llmRequest: LLMDetectionRequest = {
+        docPath,
+        docContent: body,
+        docTitle: title,
+        availableFiles,
+        availableFolders,
+      };
+      
+      logger.debug('source-detection', `Calling LLM with content length: ${body.length} chars`);
+      const llmResponse = await provider.detectSourceContext(llmRequest);
+      
+      logger.info(
+        'source-detection',
+        `LLM responded with confidence: ${llmResponse.confidence}, ` +
+        `files: ${llmResponse.files.length}, folders: ${llmResponse.folders.length}` +
+        `${llmResponse.cached ? ' (cached)' : ''}`
+      );
+      
+      // Return LLM result if confidence is acceptable
+      if (llmResponse.confidence !== 'low' || fullConfig.fallbackToRules === false) {
+        return buildLLMResult(llmResponse, fullConfig);
+      }
+      
+      logger.warn(
+        'source-detection',
+        `LLM confidence too low (${llmResponse.confidence}), falling back to rule-based detection`
+      );
+    } catch (error) {
+      logger.error('source-detection', 'LLM detection failed:', error);
+      if (fullConfig.fallbackToRules) {
+        logger.info('source-detection', 'Falling back to rule-based detection');
+      }
+    }
+  } else {
+    logger.warn('source-detection', `LLM provider ${llmProvider.type} not available (check API key)`);
+  }
+  
+  return null;
+}
+
+/**
+ * Build LLM detection result
+ */
+function buildLLMResult(
+  llmResponse: any,
+  fullConfig: SourceContextConfig
+): ContextDetectionResult {
+  logger.success(
+    'source-detection',
+    `Using LLM result - confidence: ${llmResponse.confidence}, files: ${llmResponse.files.length}, folders: ${llmResponse.folders.length}`
+  );
+  logger.debug('source-detection', `LLM reasoning: ${llmResponse.reasoning.join('; ')}`);
+  
+  const sourceContext: SourceContext = {
+    files: llmResponse.files,
+    folders: llmResponse.folders,
+    globs: [],
+    exclude: fullConfig.excludePatterns,
+    manual: false,
+    confidence: llmResponse.confidence,
+    lastUpdated: new Date().toISOString(),
+  };
+  
+  return {
+    sourceContext,
+    confidence: llmResponse.confidence,
+    reasoning: [
+      `LLM-powered detection (${llmResponse.model})${llmResponse.cached ? ' [cached]' : ''}`,
+      ...llmResponse.reasoning,
+    ],
+    suggestions: [],
+  };
+}
+
+/**
+ * Perform rule-based detection
+ */
+async function performRuleBasedDetection(
+  docPath: string,
+  projectRoot: string,
+  fileTree: any,
+  body: string,
+  title: string,
+  availableFiles: string[],
+  fullConfig: SourceContextConfig
+): Promise<ContextDetectionResult> {
+  logger.info('source-detection', 'Using rule-based detection');
+  
+  const matcher = new ContextMatcher();
+  const patternResult = await matcher.match(docPath, projectRoot, fileTree);
+  
   const keywords = extractKeywords(body, title);
   const keywordMatches = matchKeywordsToFiles(keywords, availableFiles);
   
-  // Combine results
   const allFiles = new Set([
     ...patternResult.sourceContext.files,
-    ...keywordMatches.slice(0, 5).map(m => m.file), // Top 5 keyword matches
+    ...keywordMatches.slice(0, 5).map(m => m.file),
   ]);
   
   const reasoning = [
+    'Rule-based detection',
     ...patternResult.reasoning,
     ...keywordMatches.slice(0, 3).map(m =>
       `Keyword match: ${m.matchedKeywords.join(', ')} → ${m.file}`
@@ -98,7 +267,7 @@ export async function detectSourceContext(
     sourceContext,
     confidence: patternResult.sourceContext.confidence || 'low',
     reasoning,
-    suggestions: keywordMatches.slice(5, 10).map(m => m.file), // Next 5 as suggestions
+    suggestions: keywordMatches.slice(5, 10).map(m => m.file),
   };
 }
 

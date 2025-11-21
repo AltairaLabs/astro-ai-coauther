@@ -185,6 +185,25 @@ export function flattenFileTree(tree: FileTree): string[] {
 }
 
 /**
+ * Extract all folder paths from file tree
+ */
+export function extractFolders(tree: FileTree): string[] {
+  const folders: string[] = [];
+  
+  function traverse(node: FileTree) {
+    if (node.type === 'directory') {
+      folders.push(node.path);
+      if (node.children) {
+        node.children.forEach(traverse);
+      }
+    }
+  }
+  
+  traverse(tree);
+  return folders;
+}
+
+/**
  * Get all files in a directory (non-recursive)
  */
 export async function getDirectoryFiles(dirPath: string): Promise<string[]> {
