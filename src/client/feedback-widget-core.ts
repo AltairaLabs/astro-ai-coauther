@@ -160,7 +160,7 @@ export class FeedbackWidget {
 
   private resetForm(): void {
     this.feedbackData = {
-      pageUrl: this.window.location.pathname,
+      pageUrl: this.window?.location?.pathname || '',
       timestamp: new Date().toISOString(),
       rating: null,
       comment: '',

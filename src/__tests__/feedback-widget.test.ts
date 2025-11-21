@@ -612,5 +612,46 @@ describe('Feedback Widget', () => {
         expect(contentDiv?.innerHTML).toContain('Saved to frontmatter');
       });
     });
+
+    it('should show error message when save fails', async () => {
+      // First detect successfully
+      const mockResponse = {
+        sourceContext: {
+          files: ['src/test.ts'],
+          folders: [],
+          confidence: 'high',
+        },
+        confidence: 'high',
+        reasoning: [],
+      };
+
+      // Mock detect success, then save failure
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ error: 'Save failed' }),
+        } as Response);
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        const saveBtn = document.getElementById('source-save-btn');
+        expect(saveBtn?.style.display).toBe('block');
+      });
+
+      // Try to save
+      const saveBtn = document.getElementById('source-save-btn');
+      saveBtn!.click();
+
+      await vi.waitFor(() => {
+        const contentDiv = document.getElementById('source-context-content');
+        expect(contentDiv?.innerHTML).toContain('Save failed');
+      });
+    });
   });
 });
