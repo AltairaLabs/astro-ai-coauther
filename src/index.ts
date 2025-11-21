@@ -23,6 +23,29 @@ export type {
   FeedbackTask 
 } from './utils/export.js';
 
+// Re-export source context types and utilities for consumers
+export type {
+  SourceContext,
+  AICoauthorFrontmatter,
+  ContextDetectionResult,
+  SourceContextConfig,
+  ContextMapping,
+  FileTree,
+  DocumentationPage,
+  PageCluster,
+  MatchRule,
+} from './types/index.js';
+
+export {
+  detectSourceContext,
+  detectAllSourceContexts,
+  validateSourceContext,
+  saveSourceContext,
+  loadSourceContext,
+  removeAllSourceContexts,
+  defaultSourceContextConfig,
+} from './utils/source-context-detection.js';
+
 export interface AstroAICoauthorOptions {
   /**
    * Enable the feedback widget in development mode
@@ -119,6 +142,22 @@ export default function astroAICoauthor(
             pattern: '/_ai-coauthor/export',
             entrypoint: fileURLToPath(
               new URL('../src/pages/_ai-coauthor/export.ts', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+
+          // Source context detection API endpoint
+          injectRoute({
+            pattern: '/_ai-coauthor/detect-context',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/detect-context.ts', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+
+          // Source context save API endpoint
+          injectRoute({
+            pattern: '/_ai-coauthor/save-context',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/save-context.ts', import.meta.url)
             ).replace('/dist/', '/'),
           });
           

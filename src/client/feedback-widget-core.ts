@@ -1,6 +1,27 @@
 /**
  * Core feedback widget functionality - exported for testing
+ * 
+ * Architecture Decision: Vanilla JS + HTML Templates
+ * 
+ * This widget is built with vanilla JavaScript and HTML templates rather than
+ * a framework (React, Preact, Svelte, etc.) for the following reasons:
+ * 
+ * 1. Zero runtime dependencies - No framework bundle shipped to users
+ * 2. Framework agnostic - Works with any site (Astro, Next.js, plain HTML, etc.)
+ * 3. No version conflicts - Users don't need React/etc. installed
+ * 4. Minimal footprint - Keeps the injected script size small
+ * 
+ * Trade-offs:
+ * - More verbose code (manual DOM manipulation, event listeners)
+ * - Less maintainable as complexity grows
+ * - No reactive state management or component lifecycle
+ * 
+ * Future consideration: If the widget grows significantly in complexity,
+ * consider migrating to Preact (3KB, React-like API) or Lit (5KB, Web Components)
+ * and bundling as a standalone script with all dependencies included.
  */
+
+import widgetTemplate from './templates/widget.html?raw';
 
 export interface FeedbackData {
   pageUrl: string;
@@ -29,134 +50,7 @@ export class FeedbackWidget {
   }
 
   createWidget(): void {
-    const widgetHTML = `
-      <div id="ai-coauthor-widget" style="
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 10000;
-        font-family: system-ui, -apple-system, sans-serif;
-      ">
-        <button id="ai-coauthor-toggle" style="
-          background: #4F46E5;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 56px;
-          height: 56px;
-          cursor: pointer;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-          font-size: 24px;
-        ">
-          💬
-        </button>
-        
-        <div id="ai-coauthor-panel" style="
-          display: none;
-          position: absolute;
-          bottom: 70px;
-          right: 0;
-          width: 320px;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-          padding: 20px;
-        ">
-          <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #1F2937;">
-            📝 Doc Feedback
-          </h3>
-          
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-size: 14px; color: #6B7280;">
-              How helpful is this page?
-            </label>
-            <div id="ai-coauthor-rating" style="display: flex; gap: 8px;">
-              <button class="rating-btn" data-rating="1">😞</button>
-              <button class="rating-btn" data-rating="2">😐</button>
-              <button class="rating-btn" data-rating="3">🙂</button>
-              <button class="rating-btn" data-rating="4">😊</button>
-              <button class="rating-btn" data-rating="5">🤩</button>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-size: 14px; color: #6B7280;">
-              Category
-            </label>
-            <select id="ai-coauthor-category" style="
-              width: 100%;
-              padding: 8px;
-              border: 1px solid #D1D5DB;
-              border-radius: 6px;
-              font-size: 14px;
-            ">
-              <option value="general">General</option>
-              <option value="accuracy">Accuracy</option>
-              <option value="clarity">Clarity</option>
-              <option value="completeness">Completeness</option>
-              <option value="outdated">Outdated</option>
-            </select>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-size: 14px; color: #6B7280;">
-              Comments (optional)
-            </label>
-            <textarea id="ai-coauthor-comment" placeholder="What could be improved?" style="
-              width: 100%;
-              height: 80px;
-              padding: 8px;
-              border: 1px solid #D1D5DB;
-              border-radius: 6px;
-              font-size: 14px;
-              resize: vertical;
-            "></textarea>
-          </div>
-
-          <button id="ai-coauthor-submit" style="
-            width: 100%;
-            padding: 10px;
-            background: #4F46E5;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-          ">
-            Submit Feedback
-          </button>
-
-          <div id="ai-coauthor-status" style="
-            margin-top: 12px;
-            font-size: 13px;
-            color: #059669;
-            display: none;
-          "></div>
-        </div>
-      </div>
-
-      <style>
-        .rating-btn {
-          background: #F3F4F6;
-          border: 2px solid transparent;
-          border-radius: 8px;
-          padding: 8px;
-          font-size: 20px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .rating-btn:hover {
-          background: #E5E7EB;
-        }
-        .rating-btn.selected {
-          border-color: #4F46E5;
-          background: #EEF2FF;
-        }
-      </style>
-    `;
-
-    this.document.body.insertAdjacentHTML('beforeend', widgetHTML);
+    this.document.body.insertAdjacentHTML('beforeend', widgetTemplate);
     this.attachEventListeners();
   }
 
@@ -167,6 +61,8 @@ export class FeedbackWidget {
     const ratingBtns = this.document.querySelectorAll('.rating-btn');
     const categorySelect = this.document.getElementById('ai-coauthor-category');
     const commentTextarea = this.document.getElementById('ai-coauthor-comment');
+    const sourceDetectBtn = this.document.getElementById('source-detect-btn');
+    const sourceSaveBtn = this.document.getElementById('source-save-btn');
 
     toggleBtn?.addEventListener('click', () => this.togglePanel(panel));
 
@@ -183,6 +79,10 @@ export class FeedbackWidget {
     });
 
     submitBtn?.addEventListener('click', () => this.submitFeedback());
+    
+    // Source context buttons
+    sourceDetectBtn?.addEventListener('click', () => this.detectSourceContext());
+    sourceSaveBtn?.addEventListener('click', () => this.saveSourceContext());
   }
 
   private togglePanel(panel: HTMLElement | null): void {
@@ -259,26 +159,216 @@ export class FeedbackWidget {
   }
 
   private resetForm(): void {
-    this.feedbackData = {
-      pageUrl: this.window.location.pathname,
-      timestamp: new Date().toISOString(),
-      rating: null,
-      comment: '',
-      category: 'general',
-    };
+    // Wrap in try-catch to handle window being closed/destroyed during async operations
+    // This happens in tests when setTimeout fires after test teardown closes the jsdom window
+    try {
+      this.feedbackData = {
+        pageUrl: this.window?.location?.pathname || '',
+        timestamp: new Date().toISOString(),
+        rating: null,
+        comment: '',
+        category: 'general',
+      };
 
-    for (const btn of this.document.querySelectorAll('.rating-btn')) {
-      btn.classList.remove('selected');
+      for (const btn of this.document.querySelectorAll('.rating-btn')) {
+        btn.classList.remove('selected');
+      }
+
+      const commentTextarea = this.document.getElementById('ai-coauthor-comment') as HTMLTextAreaElement | null;
+      if (commentTextarea) commentTextarea.value = '';
+
+      const categorySelect = this.document.getElementById('ai-coauthor-category') as HTMLSelectElement | null;
+      if (categorySelect) categorySelect.value = 'general';
+    } catch (error) {
+      // Silently ignore errors from accessing destroyed window/document
+      // This is expected when setTimeout callbacks fire after environment cleanup (tests)
+      // In production, this would only happen if the page is being navigated away
+      if (error instanceof TypeError && error.message.includes('_location')) {
+        // Expected: jsdom window was closed
+        return;
+      }
+      // Re-throw unexpected errors
+      throw error;
     }
-
-    const commentTextarea = this.document.getElementById('ai-coauthor-comment') as HTMLTextAreaElement | null;
-    if (commentTextarea) commentTextarea.value = '';
-
-    const categorySelect = this.document.getElementById('ai-coauthor-category') as HTMLSelectElement | null;
-    if (categorySelect) categorySelect.value = 'general';
 
     const statusEl = this.document.getElementById('ai-coauthor-status');
     if (statusEl) statusEl.style.display = 'none';
+  }
+
+  private currentSourceContext: any = null;
+
+  private async detectSourceContext(): Promise<void> {
+    const detectBtn = this.document.getElementById('source-detect-btn');
+    const contentDiv = this.document.getElementById('source-context-content');
+    const saveBtn = this.document.getElementById('source-save-btn');
+    
+    if (!detectBtn || !contentDiv) return;
+    
+    detectBtn.textContent = '🔍 Detecting...';
+    (detectBtn as HTMLButtonElement).disabled = true;
+    
+    try {
+      // Use textContent for compatibility with JSDOM in tests
+      const pageContent = this.document.body.textContent || this.document.body.innerText || '';
+      const payload = {
+        docPath: this.window?.location?.pathname || '',
+        docContent: pageContent.substring(0, 5000), // Limit content size
+      };
+      
+      console.log('[source-context] Sending detection request:', { 
+        docPath: payload.docPath, 
+        contentLength: payload.docContent.length 
+      });
+      
+      // Parse JSON body the same way as feedback endpoint
+      const rawBody = JSON.stringify(payload);
+      console.log('[source-context] Raw body length:', rawBody.length);
+      
+      const response = await fetch('/_ai-coauthor/detect-context', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: rawBody,
+      });
+      
+      console.log('[source-context] Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[source-context] Error response:', errorText);
+        throw new Error(`Detection failed: ${response.status}`);
+      }
+      
+      this.currentSourceContext = await response.json();
+      console.log('[source-context] Detection result:', this.currentSourceContext);
+      this.displaySourceContext(contentDiv, this.currentSourceContext);
+      
+      if (saveBtn) {
+        (saveBtn as HTMLElement).style.display = 'block';
+      }
+    } catch (error) {
+      console.error('[source-context] Error:', error);
+      contentDiv.innerHTML = `<div style="color: #DC2626;">Failed to detect: ${error}</div>`;
+    } finally {
+      detectBtn.textContent = '🔍 Detect';
+      (detectBtn as HTMLButtonElement).disabled = false;
+    }
+  }
+
+  private displaySourceContext(container: HTMLElement, result: any): void {
+    console.log('[source-context] Displaying result:', result);
+    
+    const files = result.sourceContext?.files || [];
+    const folders = result.sourceContext?.folders || [];
+    const confidence = result.confidence || 'low';
+    const reasoning = result.reasoning || [];
+    
+    console.log('[source-context] Extracted data:', { files, folders, confidence, reasoning });
+    
+    const confidenceColors: Record<string, string> = {
+      high: '#10B981',
+      medium: '#F59E0B',
+      low: '#EF4444',
+    };
+    
+    const filesList = files.slice(0, 5).map((f: string) => `<li style="margin: 2px 0;">${f}</li>`).join('');
+    const moreFiles = files.length > 5 ? `<li style="color: #9CA3AF;">+${files.length - 5} more...</li>` : '';
+    const filesSection = files.length > 0 ? `
+      <div style="margin-bottom: 6px; font-weight: 500; color: #374151;">Files:</div>
+      <ul style="margin: 0 0 8px 0; padding-left: 20px; font-size: 11px; color: #6B7280;">
+        ${filesList}${moreFiles}
+      </ul>
+    ` : '<div style="color: #9CA3AF; font-style: italic; margin-bottom: 8px;">No files detected</div>';
+    
+    const foldersSection = folders.length > 0 ? `
+      <div style="margin-bottom: 6px; font-weight: 500; color: #374151;">Folders:</div>
+      <ul style="margin: 0 0 8px 0; padding-left: 20px; font-size: 11px; color: #6B7280;">
+        ${folders.map((f: string) => `<li style="margin: 2px 0;">${f}</li>`).join('')}
+      </ul>
+    ` : '';
+    
+    const reasoningSection = reasoning.length > 0 ? `
+      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB;">
+        <div style="margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 11px;">Reasoning:</div>
+        <ul style="margin: 0; padding-left: 20px; font-size: 10px; color: #6B7280;">
+          ${reasoning.slice(0, 3).map((r: string) => `<li style="margin: 2px 0;">${r}</li>`).join('')}
+        </ul>
+      </div>
+    ` : '';
+    
+    container.innerHTML = `
+      <div style="margin-bottom: 8px;">
+        <span style="
+          display: inline-block;
+          padding: 2px 8px;
+          background: ${confidenceColors[confidence]}20;
+          color: ${confidenceColors[confidence]};
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+        ">
+          ${confidence.toUpperCase()} CONFIDENCE
+        </span>
+      </div>
+      ${filesSection}
+      ${foldersSection}
+      ${reasoningSection}
+    `;
+  }
+
+  private async saveSourceContext(): Promise<void> {
+    const saveBtn = this.document.getElementById('source-save-btn');
+    const contentDiv = this.document.getElementById('source-context-content');
+    
+    if (!saveBtn || !this.currentSourceContext) return;
+    
+    saveBtn.textContent = '💾 Saving...';
+    (saveBtn as HTMLButtonElement).disabled = true;
+    
+    try {
+      const docPath = this.window?.location?.pathname || '';
+      
+      // Extract just the sourceContext from the detection result
+      const contextToSave = this.currentSourceContext.sourceContext || this.currentSourceContext;
+      
+      const response = await fetch('/_ai-coauthor/save-context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          docPath,
+          sourceContext: contextToSave,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save');
+      }
+      
+      if (contentDiv) {
+        const successMsg = this.document.createElement('div');
+        successMsg.style.cssText = 'color: #10B981; font-weight: 500; margin-top: 8px; font-size: 11px;';
+        successMsg.textContent = '✓ Saved to frontmatter!';
+        contentDiv.appendChild(successMsg);
+        
+        setTimeout(() => successMsg.remove(), 3000);
+      }
+    } catch (error) {
+      console.error('[source-context] Save error:', error);
+      
+      if (contentDiv) {
+        const errorMsg = this.document.createElement('div');
+        errorMsg.style.cssText = 'color: #EF4444; font-weight: 500; margin-top: 8px; font-size: 11px;';
+        errorMsg.textContent = `✗ Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        contentDiv.appendChild(errorMsg);
+        
+        setTimeout(() => errorMsg.remove(), 5000);
+      }
+    } finally {
+      saveBtn.textContent = '💾 Save';
+      (saveBtn as HTMLButtonElement).disabled = false;
+    }
   }
 
   public initialize(): void {

@@ -154,6 +154,25 @@ describe('exportFeedback', () => {
     
     expect(result).toContain('"Comment with ""quotes"" and, commas"');
   });
+
+  it('should handle CSV backslashes', () => {
+    const entriesWithBackslashes: FeedbackStorageEntry[] = [
+      {
+        id: '1',
+        timestamp: Date.now(),
+        page: '/test',
+        rating: 5,
+        category: 'general',
+        notes: String.raw`Path: C:\Users\test\file.txt`,
+      },
+    ];
+
+    const options: ExportOptions = { format: 'csv' };
+    const result = exportFeedback(entriesWithBackslashes, options);
+    
+    // Backslashes should be escaped in CSV output
+    expect(result).toContain(String.raw`"Path: C:\\Users\\test\\file.txt"`);
+  });
 });
 
 describe('generateAnalytics', () => {

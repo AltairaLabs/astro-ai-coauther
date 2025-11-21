@@ -13,8 +13,8 @@ describe('Feedback Widget', () => {
   let widget: FeedbackWidget;
 
   beforeEach(() => {
-    // Create a new JSDOM instance
-    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+    // Create a new JSDOM instance with content
+    dom = new JSDOM('<!DOCTYPE html><html><body><h1>Test Documentation</h1><p>Some content for testing.</p></body></html>', {
       url: 'http://localhost:3000/docs/test-page',
     });
     
@@ -32,6 +32,7 @@ describe('Feedback Widget', () => {
   afterEach(() => {
     dom.window.close();
     vi.restoreAllMocks();
+    delete (globalThis as any).fetch;
   });
 
   it('should create widget elements in the DOM', () => {
@@ -428,5 +429,261 @@ describe('Feedback Widget', () => {
     expect(widgetEl).toBeTruthy();
     
     dom2.window.close();
+  });
+
+  describe('Source Context Detection', () => {
+    it('should send detection request when detect button clicked', async () => {
+      const mockResponse = {
+        sourceContext: {
+          files: ['src/test.ts'],
+          folders: [],
+          confidence: 'high',
+        },
+        confidence: 'high',
+        reasoning: ['Keyword match: test → src/test.ts'],
+      };
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      expect(detectBtn).toBeTruthy();
+
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith('/_ai-coauthor/detect-context', expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      });
+    });
+
+    it('should display detection results in UI', async () => {
+      const mockResponse = {
+        sourceContext: {
+          files: ['src/main.ts', 'src/utils.ts'],
+          folders: ['src/components'],
+          confidence: 'medium',
+        },
+        confidence: 'medium',
+        reasoning: ['Matched folder src/components'],
+      };
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      const contentDiv = document.getElementById('source-context-content');
+
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        expect(contentDiv?.innerHTML).toContain('src/main.ts');
+        expect(contentDiv?.innerHTML).toContain('MEDIUM CONFIDENCE');
+      });
+    });
+
+    it('should show error message on detection failure', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => 'Server error',
+      } as Response);
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      const contentDiv = document.getElementById('source-context-content');
+
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        expect(contentDiv?.innerHTML).toContain('Failed to detect');
+      });
+    });
+
+    it('should handle network errors', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      const contentDiv = document.getElementById('source-context-content');
+
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        expect(contentDiv?.innerHTML).toContain('Failed to detect');
+      });
+    });
+
+    it('should show save button after successful detection', async () => {
+      const mockResponse = {
+        sourceContext: {
+          files: ['src/test.ts'],
+          folders: [],
+          confidence: 'high',
+        },
+        confidence: 'high',
+        reasoning: [],
+      };
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      const saveBtn = document.getElementById('source-save-btn');
+
+      expect(saveBtn?.style.display).toBe('none');
+
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        expect(saveBtn?.style.display).toBe('block');
+      });
+    });
+
+    it('should display "No files detected" when empty result', async () => {
+      const mockResponse = {
+        sourceContext: {
+          files: [],
+          folders: [],
+          confidence: 'low',
+        },
+        confidence: 'low',
+        reasoning: [],
+      };
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      const contentDiv = document.getElementById('source-context-content');
+
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        expect(contentDiv?.innerHTML).toContain('No files detected');
+      });
+    });
+
+    it('should show success message when save clicked', async () => {
+      // First detect
+      const mockResponse = {
+        sourceContext: {
+          files: ['src/test.ts'],
+          folders: [],
+          confidence: 'high',
+        },
+        confidence: 'high',
+        reasoning: [],
+      };
+
+      // Mock both detect and save fetch calls
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response);
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        const saveBtn = document.getElementById('source-save-btn');
+        expect(saveBtn?.style.display).toBe('block');
+      });
+
+      // Then save
+      const saveBtn = document.getElementById('source-save-btn');
+      saveBtn!.click();
+
+      await vi.waitFor(() => {
+        const contentDiv = document.getElementById('source-context-content');
+        expect(contentDiv?.innerHTML).toContain('Saved to frontmatter');
+      });
+    });
+
+    it('should show error message when save fails', async () => {
+      // First detect successfully
+      const mockResponse = {
+        sourceContext: {
+          files: ['src/test.ts'],
+          folders: [],
+          confidence: 'high',
+        },
+        confidence: 'high',
+        reasoning: [],
+      };
+
+      // Mock detect success, then save failure
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ error: 'Save failed' }),
+        } as Response);
+
+      const detectBtn = document.getElementById('source-detect-btn');
+      detectBtn!.click();
+
+      await vi.waitFor(() => {
+        const saveBtn = document.getElementById('source-save-btn');
+        expect(saveBtn?.style.display).toBe('block');
+      });
+
+      // Try to save
+      const saveBtn = document.getElementById('source-save-btn');
+      saveBtn!.click();
+
+      await vi.waitFor(() => {
+        const contentDiv = document.getElementById('source-context-content');
+        expect(contentDiv?.innerHTML).toContain('Save failed');
+      });
+    });
+
+    it('should handle window destruction during delayed reset (race condition)', async () => {
+      // This test reproduces the CI flake where setTimeout fires after test cleanup
+      vi.useFakeTimers();
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+
+      const submitBtn = document.getElementById('ai-coauthor-submit') as HTMLButtonElement;
+      const ratingBtn = document.querySelector('.rating-btn') as HTMLElement;
+      
+      ratingBtn.click();
+      submitBtn.click();
+
+      // Wait for async fetch to complete
+      await vi.waitFor(() => {
+        const statusEl = document.getElementById('ai-coauthor-status');
+        expect(statusEl?.textContent).toContain('submitted');
+      });
+
+      // Simulate test cleanup - close the window BEFORE the 1500ms timeout fires
+      dom.window.close();
+
+      // Advance timers to trigger the setTimeout callback on a closed window
+      await vi.advanceTimersByTimeAsync(1500);
+
+      // Should NOT throw an error - the resetForm should handle closed window gracefully
+      
+      vi.useRealTimers();
+    });
   });
 });
