@@ -159,6 +159,11 @@ export class FeedbackWidget {
   }
 
   private resetForm(): void {
+    // Guard: Skip reset if window/document are destroyed (e.g., during test teardown)
+    if (!this.window || !this.document) {
+      return;
+    }
+    
     this.feedbackData = {
       pageUrl: this.window?.location?.pathname || '',
       timestamp: new Date().toISOString(),
