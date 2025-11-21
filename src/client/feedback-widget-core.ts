@@ -159,28 +159,37 @@ export class FeedbackWidget {
   }
 
   private resetForm(): void {
-    // Guard: Skip reset if window/document are destroyed (e.g., during test teardown)
-    if (!this.window || !this.document) {
-      return;
+    // Wrap in try-catch to handle window being closed/destroyed during async operations
+    // This happens in tests when setTimeout fires after test teardown closes the jsdom window
+    try {
+      this.feedbackData = {
+        pageUrl: this.window?.location?.pathname || '',
+        timestamp: new Date().toISOString(),
+        rating: null,
+        comment: '',
+        category: 'general',
+      };
+
+      for (const btn of this.document.querySelectorAll('.rating-btn')) {
+        btn.classList.remove('selected');
+      }
+
+      const commentTextarea = this.document.getElementById('ai-coauthor-comment') as HTMLTextAreaElement | null;
+      if (commentTextarea) commentTextarea.value = '';
+
+      const categorySelect = this.document.getElementById('ai-coauthor-category') as HTMLSelectElement | null;
+      if (categorySelect) categorySelect.value = 'general';
+    } catch (error) {
+      // Silently ignore errors from accessing destroyed window/document
+      // This is expected when setTimeout callbacks fire after environment cleanup (tests)
+      // In production, this would only happen if the page is being navigated away
+      if (error instanceof TypeError && error.message.includes('_location')) {
+        // Expected: jsdom window was closed
+        return;
+      }
+      // Re-throw unexpected errors
+      throw error;
     }
-    
-    this.feedbackData = {
-      pageUrl: this.window?.location?.pathname || '',
-      timestamp: new Date().toISOString(),
-      rating: null,
-      comment: '',
-      category: 'general',
-    };
-
-    for (const btn of this.document.querySelectorAll('.rating-btn')) {
-      btn.classList.remove('selected');
-    }
-
-    const commentTextarea = this.document.getElementById('ai-coauthor-comment') as HTMLTextAreaElement | null;
-    if (commentTextarea) commentTextarea.value = '';
-
-    const categorySelect = this.document.getElementById('ai-coauthor-category') as HTMLSelectElement | null;
-    if (categorySelect) categorySelect.value = 'general';
 
     const statusEl = this.document.getElementById('ai-coauthor-status');
     if (statusEl) statusEl.style.display = 'none';

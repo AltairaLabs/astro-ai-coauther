@@ -653,5 +653,37 @@ describe('Feedback Widget', () => {
         expect(contentDiv?.innerHTML).toContain('Save failed');
       });
     });
+
+    it('should handle window destruction during delayed reset (race condition)', async () => {
+      // This test reproduces the CI flake where setTimeout fires after test cleanup
+      vi.useFakeTimers();
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+
+      const submitBtn = document.getElementById('ai-coauthor-submit') as HTMLButtonElement;
+      const ratingBtn = document.querySelector('.rating-btn') as HTMLElement;
+      
+      ratingBtn.click();
+      submitBtn.click();
+
+      // Wait for async fetch to complete
+      await vi.waitFor(() => {
+        const statusEl = document.getElementById('ai-coauthor-status');
+        expect(statusEl?.textContent).toContain('submitted');
+      });
+
+      // Simulate test cleanup - close the window BEFORE the 1500ms timeout fires
+      dom.window.close();
+
+      // Advance timers to trigger the setTimeout callback on a closed window
+      await vi.advanceTimersByTimeAsync(1500);
+
+      // Should NOT throw an error - the resetForm should handle closed window gracefully
+      
+      vi.useRealTimers();
+    });
   });
 });
