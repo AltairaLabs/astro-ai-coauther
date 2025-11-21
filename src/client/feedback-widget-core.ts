@@ -197,7 +197,7 @@ export class FeedbackWidget {
       // Use textContent for compatibility with JSDOM in tests
       const pageContent = this.document.body.textContent || this.document.body.innerText || '';
       const payload = {
-        docPath: this.window.location.pathname,
+        docPath: this.window?.location?.pathname || '',
         docContent: pageContent.substring(0, 5000), // Limit content size
       };
       
@@ -313,7 +313,7 @@ export class FeedbackWidget {
     (saveBtn as HTMLButtonElement).disabled = true;
     
     try {
-      const docPath = this.window.location.pathname;
+      const docPath = this.window?.location?.pathname || '';
       
       // Extract just the sourceContext from the detection result
       const contextToSave = this.currentSourceContext.sourceContext || this.currentSourceContext;
