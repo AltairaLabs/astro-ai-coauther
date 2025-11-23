@@ -1,0 +1,18 @@
+{
+  "name": "task-manager",
+  "version": "1.0.0",
+  "description": "A simple task management library",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test"
+  },
+  "keywords": ["task", "todo", "management", "productivity"],
+  "author": "Example Author",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

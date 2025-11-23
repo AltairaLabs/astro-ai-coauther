@@ -1,0 +1,15 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Provider
+metadata:
+  name: claude-3-5-sonnet
+spec:
+  type: anthropic
+  model: claude-3-5-sonnet-20241022
+  include_raw_output: true
+  pricing:
+    input_cost_per_million: 3.00    # $3.00 per 1M input tokens
+    output_cost_per_million: 15.00  # $15.00 per 1M output tokens
+  defaults:
+    temperature: 0.1
+    max_tokens: 2000
+    top_p: 1.0

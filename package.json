@@ -31,6 +31,9 @@
     "docs:dev": "cd docs && npm run dev",
     "docs:build": "cd docs && npm run build",
     "docs:preview": "cd docs && npm run preview",
+    "prompt:test": "cd prompts/src && promptarena run arena.yaml",
+    "prompt:compile": "cd prompts/src && ../../../promptkit/bin/packc compile --config arena.yaml --output ../dist/source-context-detection.json --id detect",
+    "prompt:inspect": "cd prompts/src && promptarena config-inspect arena.yaml",
     "prepublishOnly": "npm run build && npm run lint && npm run test && npm run test:playground"
   },
   "keywords": [
@@ -55,11 +58,17 @@
     "astro": "^4.0.0"
   },
   "devDependencies": {
+    "@altairalabs/promptarena": "^1.1.0",
     "@babel/core": "^7.28.5",
+    "@babel/generator": "^7.28.5",
+    "@babel/parser": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@playwright/test": "^1.56.1",
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^20.19.25",
     "@typescript-eslint/eslint-plugin": "^6.21.0",

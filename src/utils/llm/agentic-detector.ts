@@ -4,7 +4,7 @@
  */
 
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
-import { PromptPackRegistry, PromptPackTemplate } from '@promptpack/langchain';
+import { PromptPackRegistry, type PromptPack } from '@promptpack/langchain';
 import { HumanMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import * as path from 'node:path';
@@ -29,9 +29,10 @@ export interface AgenticDetectorConfig {
  * Agentic detector that works with any LangChain chat model
  */
 export class AgenticDetector {
-  private readonly template: PromptPackTemplate;
+  private readonly pack: PromptPack;
   private readonly projectRoot: string;
   private readonly modelName: string;
+  private readonly systemTemplate: string;
 
   constructor(config: AgenticDetectorConfig) {
     this.projectRoot = config.projectRoot;
@@ -39,14 +40,15 @@ export class AgenticDetector {
 
     // Load PromptPack
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const packPath = path.resolve(__dirname, '../../../prompts/source-context-detection.json');
-    const pack = PromptPackRegistry.loadFromFile(packPath);
+    const packPath = path.resolve(__dirname, '../../../prompts/dist/source-context-detection.json');
+    this.pack = PromptPackRegistry.loadFromFile(packPath);
     
-    // Create template
-    this.template = new PromptPackTemplate({
-      pack,
-      promptId: 'detect',
-    });
+    // Extract system template directly from the pack
+    const prompt = this.pack.prompts['code-analysis'];
+    if (!prompt) {
+      throw new Error('Prompt "code-analysis" not found in pack');
+    }
+    this.systemTemplate = prompt.system_template;
   }
 
   /**
@@ -61,9 +63,8 @@ export class AgenticDetector {
 
     try {
       const allowedTools = this.prepareTools();
-      const systemPrompt = await this.buildSystemPrompt(request);
-      const agent = this.createAgent(model, allowedTools, systemPrompt);
-      const result = await this.invokeAgent(agent);
+      const agent = this.createAgent(model, allowedTools, this.systemTemplate);
+      const result = await this.invokeAgent(agent, request);
       
       this.logAgentActivity(result);
       
@@ -84,32 +85,14 @@ export class AgenticDetector {
     const tools = createFilesystemTools(this.projectRoot);
     logger.debug('llm-agentic', `Created ${tools.length} filesystem tools`);
     
-    const allowedTools = this.template.filterTools(tools);
+    // Get allowed tools from the prompt configuration
+    const prompt = this.pack.prompts['code-analysis'];
+    const allowedToolNames = prompt.tools || [];
+    const allowedTools = tools.filter(tool => allowedToolNames.includes(tool.name));
+    
     logger.info('llm-agentic', `Using ${allowedTools.length} allowed tools: ${allowedTools.map(t => t.name).join(', ')}`);
     
     return allowedTools;
-  }
-
-  /**
-   * Build system prompt from request
-   */
-  private async buildSystemPrompt(request: LLMDetectionRequest): Promise<string> {
-    const truncatedContent = request.docContent.length > 6000 
-      ? request.docContent.slice(0, 6000) + '\n\n[... content truncated ...]'
-      : request.docContent;
-
-    const existingMappingSection = this.formatExistingMapping(request.existingMapping);
-
-    const systemPromptValue = await this.template.formatPromptValue({
-      docPath: request.docPath,
-      docTitle: request.docTitle,
-      docContent: truncatedContent,
-      existingMappingSection,
-    });
-
-    const messages = systemPromptValue.toChatMessages();
-    const systemMessage = messages.find(m => m.constructor.name === 'SystemMessage');
-    return systemMessage?.content as string || '';
   }
 
   /**
@@ -137,7 +120,7 @@ Note: You may confirm, refine, or completely revise this mapping based on your a
     const agent = createReactAgent({
       llm: model,
       tools,
-      messageModifier: systemPrompt,
+      prompt: systemPrompt,
     });
     logger.debug('llm-agentic', `Agent initialized, project root: ${this.projectRoot}`);
     return agent;
@@ -146,26 +129,84 @@ Note: You may confirm, refine, or completely revise this mapping based on your a
   /**
    * Invoke agent with analysis request
    */
-  private async invokeAgent(agent: any) {
-    const userMessage = `Please analyze this documentation and identify the relevant source files and folders. Use your tools to explore the codebase as needed.
+  private async invokeAgent(agent: any, request: LLMDetectionRequest) {
+    const truncatedContent = request.docContent.length > 6000 
+      ? request.docContent.slice(0, 6000) + '\n\n[... content truncated ...]'
+      : request.docContent;
 
-When you're ready with your analysis, provide your final answer as a JSON object with:
-- files: array of file paths
-- folders: array of folder paths  
-- confidence: "high", "medium", or "low"
-- reasoning: array of explanation strings
+    const existingMappingSection = this.formatExistingMapping(request.existingMapping);
 
-Be thorough but selective - only include clearly relevant files/folders.`;
+    const userMessage = `Analyze this documentation and identify the relevant source files:
 
-    logger.start('llm-agentic', 'Invoking agent...');
+Document Path: ${request.docPath}
+Document Title: ${request.docTitle}
+
+${truncatedContent}
+
+${existingMappingSection}`;
+
+    logger.start('llm-agentic', 'Invoking agent with streaming...');
     const startTime = Date.now();
-    const result = await agent.invoke({
+    
+    // Use stream to see interim steps
+    const stream = await agent.stream({
       messages: [new HumanMessage(userMessage)],
     });
+    
+    const allMessages: any[] = [];
+    for await (const chunk of stream) {
+      // Log each step as it happens
+      const chunkMessages = chunk.agent?.messages || chunk.tools?.messages || [];
+      for (const msg of chunkMessages) {
+        if (!allMessages.includes(msg)) {
+          this.logStreamMessage(msg);
+          allMessages.push(msg);
+        }
+      }
+    }
+    
     const duration = Date.now() - startTime;
     logger.success('llm-agentic', `Agent completed in ${duration}ms`);
     
-    return result;
+    // Return all collected messages
+    return { messages: allMessages };
+  }
+
+  /**
+   * Log a streaming message as it arrives
+   */
+  private logStreamMessage(msg: any): void {
+    const msgType = msg._getType();
+    
+    if (msgType === 'ai' && msg.tool_calls?.length > 0) {
+      this.logToolCalls(msg.tool_calls);
+    } else if (msgType === 'tool') {
+      this.logToolResponse(msg);
+    } else if (msgType === 'ai' && msg.content) {
+      this.logAIContent(msg.content);
+    }
+  }
+
+  private logToolCalls(toolCalls: any[]): void {
+    for (const tc of toolCalls) {
+      const argsStr = JSON.stringify(tc.args);
+      const preview = argsStr.length > 80 ? argsStr.substring(0, 80) + '...' : argsStr;
+      logger.step('llm-agentic', `🔧 Tool call: ${tc.name}(${preview})`);
+    }
+  }
+
+  private logToolResponse(msg: any): void {
+    const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+    const preview = content.length > 200 ? content.substring(0, 200) + '...' : content;
+    logger.debug('llm-agentic', `📥 Tool response (${msg.name}): ${preview}`);
+  }
+
+  private logAIContent(content: any): void {
+    const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+    if (contentStr.trim()) {
+      const preview = contentStr.length > 150 ? contentStr.substring(0, 150) + '...' : contentStr;
+      logger.info('llm-agentic', `💭 AI: ${preview}`);
+    }
   }
 
   /**
@@ -178,15 +219,32 @@ Be thorough but selective - only include clearly relevant files/folders.`;
     const aiMessages = result.messages.filter((m: any) => m._getType() === 'ai');
     logger.debug('llm-agentic', `Tool calls: ${toolMessages.length}, AI responses: ${aiMessages.length}`);
     
-    for (const msg of result.messages) {
-      const toolCalls = msg.tool_calls;
-      if (toolCalls && toolCalls.length > 0) {
-        for (const tc of toolCalls) {
-          const argsStr = JSON.stringify(tc.args);
-          const preview = argsStr.length > 80 ? argsStr.substring(0, 80) + '...' : argsStr;
-          logger.step('llm-agentic', `Tool: ${tc.name}(${preview})`);
-        }
+    this.logAllMessages(result.messages);
+  }
+
+  private logAllMessages(messages: any[]): void {
+    for (const msg of messages) {
+      this.logMessageToolCalls(msg);
+      this.logMessageToolResponse(msg);
+    }
+  }
+
+  private logMessageToolCalls(msg: any): void {
+    const toolCalls = msg.tool_calls;
+    if (toolCalls && toolCalls.length > 0) {
+      for (const tc of toolCalls) {
+        const argsStr = JSON.stringify(tc.args);
+        const preview = argsStr.length > 80 ? argsStr.substring(0, 80) + '...' : argsStr;
+        logger.step('llm-agentic', `Tool call: ${tc.name}(${preview})`);
       }
+    }
+  }
+
+  private logMessageToolResponse(msg: any): void {
+    if (msg._getType() === 'tool') {
+      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      const preview = content.length > 200 ? content.substring(0, 200) + '...' : content;
+      logger.debug('llm-agentic', `Tool response (${msg.name}): ${preview}`);
     }
   }
 

@@ -44,8 +44,11 @@ export async function isLLMAvailable(
 
   try {
     const provider = createLLMProvider(config, projectRoot);
-    return await provider.isAvailable();
-  } catch {
+    const available = await provider.isAvailable();
+    return available;
+  } catch (error) {
+    // Log the error to help debugging
+    console.error('isLLMAvailable error:', error);
     return false;
   }
 }

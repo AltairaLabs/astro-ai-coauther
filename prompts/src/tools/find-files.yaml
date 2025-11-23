@@ -1,0 +1,39 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Tool
+metadata:
+  name: find_files
+spec:
+  name: find_files
+  description: "Search for files matching a name pattern"
+  mode: mock
+  
+  input_schema:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "File name pattern to search for (supports wildcards)"
+      case_sensitive:
+        type: boolean
+        description: "Whether search is case-sensitive"
+        default: false
+    required: ["name"]
+  
+  output_schema:
+    type: object
+    properties:
+      matches:
+        type: array
+        items:
+          type: string
+        description: "Array of matching file paths"
+      count:
+        type: integer
+        description: "Number of matches found"
+    required: ["matches", "count"]
+  
+  mock_result:
+    matches:
+      - "src/types.ts"
+      - "src/types/index.ts"
+    count: 2

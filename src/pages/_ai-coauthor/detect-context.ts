@@ -61,10 +61,11 @@ export const POST: APIRoute = async ({ request }) => {
     
     // Run detection with LLM if configured
     logger.info('detect-context', `Starting detection for ${docPath}`);
+    logger.info('detect-context', `Source root for LLM tools: ${sourceRoot}`);
     const result = await detectSourceContext(
       docFilePath,
       docContent,
-      projectRoot,
+      sourceRoot,
       {
         projectRoot: sourceRoot,
         llmProvider,

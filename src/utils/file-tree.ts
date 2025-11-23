@@ -108,11 +108,8 @@ async function loadGitignorePatterns(rootPath: string): Promise<string[]> {
       .split('\n')
       .map(line => line.trim())
       .filter(line => line && !line.startsWith('#'));
-  } catch (error: unknown) {
-    // No .gitignore file or cannot read it
-    if (error instanceof Error) {
-      console.debug(`Could not read .gitignore: ${error.message}`);
-    }
+  } catch {
+    // No .gitignore file or cannot read it - silently ignore
     return [];
   }
 }

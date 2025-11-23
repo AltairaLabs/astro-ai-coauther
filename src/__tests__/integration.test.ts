@@ -80,12 +80,19 @@ describe('Astro AI Coauthor Integration', () => {
       const injectScript = vi.fn();
       const injectRoute = vi.fn();
       const updateConfig = vi.fn();
+      const logger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      };
 
       integration.hooks['astro:config:setup']({
         command: 'dev',
         injectScript,
         injectRoute,
         updateConfig,
+        logger,
       } as any);
 
       expect(injectScript).toHaveBeenCalledWith(
@@ -99,12 +106,19 @@ describe('Astro AI Coauthor Integration', () => {
       const injectScript = vi.fn();
       const injectRoute = vi.fn();
       const updateConfig = vi.fn();
+      const logger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      };
 
       integration.hooks['astro:config:setup']({
         command: 'build',
         injectScript,
         injectRoute,
         updateConfig,
+        logger,
       } as any);
 
       expect(injectScript).not.toHaveBeenCalled();
@@ -115,12 +129,19 @@ describe('Astro AI Coauthor Integration', () => {
       const injectScript = vi.fn();
       const injectRoute = vi.fn();
       const updateConfig = vi.fn();
+      const logger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      };
 
       integration.hooks['astro:config:setup']({
         command: 'dev',
         injectScript,
         injectRoute,
         updateConfig,
+        logger,
       } as any);
 
       expect(injectScript).not.toHaveBeenCalled();
@@ -133,12 +154,19 @@ describe('Astro AI Coauthor Integration', () => {
       const injectScript = vi.fn();
       const injectRoute = vi.fn();
       const updateConfig = vi.fn();
+      const logger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      };
 
       integration.hooks['astro:config:setup']({
         command: 'dev',
         injectScript,
         injectRoute,
         updateConfig,
+        logger,
       } as any);
 
       expect(injectRoute).toHaveBeenCalledWith(
@@ -153,12 +181,19 @@ describe('Astro AI Coauthor Integration', () => {
       const injectScript = vi.fn();
       const injectRoute = vi.fn();
       const updateConfig = vi.fn();
+      const logger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      };
 
       integration.hooks['astro:config:setup']({
         command: 'dev',
         injectScript,
         injectRoute,
         updateConfig,
+        logger,
       } as any);
 
       expect(injectRoute).toHaveBeenCalledWith(
@@ -173,12 +208,19 @@ describe('Astro AI Coauthor Integration', () => {
       const injectScript = vi.fn();
       const injectRoute = vi.fn();
       const updateConfig = vi.fn();
+      const logger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      };
 
       integration.hooks['astro:config:setup']({
         command: 'dev',
         injectScript,
         injectRoute,
         updateConfig,
+        logger,
       } as any);
 
       expect(injectRoute).not.toHaveBeenCalled();
@@ -189,12 +231,19 @@ describe('Astro AI Coauthor Integration', () => {
       const injectScript = vi.fn();
       const injectRoute = vi.fn();
       const updateConfig = vi.fn();
+      const logger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      };
 
       integration.hooks['astro:config:setup']({
         command: 'build',
         injectScript,
         injectRoute,
         updateConfig,
+        logger,
       } as any);
 
       expect(injectRoute).not.toHaveBeenCalled();

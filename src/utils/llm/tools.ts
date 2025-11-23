@@ -29,23 +29,28 @@ export function createFilesystemTools(projectRoot: string) {
       func: async ({ pattern }) => {
         const msg = pattern ? `with pattern: ${pattern}` : 'listing all source files';
         logger.debug('tool:list_source_files', msg);
+        logger.debug('tool:list_source_files', `Project root: ${projectRoot}`);
         try {
           const tree = await buildFileTree(projectRoot);
           let files = flattenFileTree(tree);
+          logger.debug('tool:list_source_files', `After flattenFileTree: ${files.length} files`);
           
           // Apply pattern filter if provided
           if (pattern) {
             const minimatch = await import('minimatch');
+            const beforeFilter = files.length;
             files = files.filter(f => minimatch.minimatch(f, pattern));
+            logger.debug('tool:list_source_files', `After pattern filter: ${files.length}/${beforeFilter} files`);
           }
           
           // Filter out non-source files
+          const beforeSourceFilter = files.length;
           files = files.filter(f => {
             const ext = path.extname(f);
             return ['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte', '.astro', '.py', '.go', '.rs', '.java', '.cpp', '.c', '.h'].includes(ext);
           });
           
-          logger.debug('tool:list_source_files', `Found ${files.length} files`);
+          logger.info('tool:list_source_files', `Found ${files.length} source files (filtered from ${beforeSourceFilter})`);
           const sortedFiles = files.toSorted((a, b) => a.localeCompare(b));
           return JSON.stringify({
             count: files.length,
@@ -68,19 +73,23 @@ export function createFilesystemTools(projectRoot: string) {
       func: async ({ depth }) => {
         const msg = depth ? `with depth: ${depth}` : 'listing all folders';
         logger.debug('tool:list_folders', msg);
+        logger.debug('tool:list_folders', `Project root: ${projectRoot}`);
         try{
           const tree = await buildFileTree(projectRoot);
           let folders = extractFolders(tree);
+          logger.debug('tool:list_folders', `After extractFolders: ${folders.length} folders`);
           
           // Apply depth filter if provided
           if (depth !== undefined) {
+            const beforeFilter = folders.length;
             folders = folders.filter(f => {
               const parts = f.split(path.sep);
               return parts.length <= depth;
             });
+            logger.debug('tool:list_folders', `After depth filter: ${folders.length}/${beforeFilter} folders`);
           }
           
-          logger.debug('tool:list_folders', `Found ${folders.length} folders`);
+          logger.info('tool:list_folders', `Found ${folders.length} folders`);
           const sortedFolders = folders.toSorted((a, b) => a.localeCompare(b));
           return JSON.stringify({
             count: folders.length,
@@ -141,15 +150,18 @@ export function createFilesystemTools(projectRoot: string) {
       }),
       func: async ({ name_pattern }) => {
         logger.debug('tool:find_files', `Searching for pattern: ${name_pattern}`);
+        logger.debug('tool:find_files', `Project root: ${projectRoot}`);
         try {
           const tree = await buildFileTree(projectRoot);
           const allFiles = flattenFileTree(tree);
+          logger.debug('tool:find_files', `Total files to search: ${allFiles.length}`);
           
           const minimatch = await import('minimatch');
           const pattern = name_pattern.includes('/') ? name_pattern : `**/${name_pattern}`;
+          logger.debug('tool:find_files', `Using pattern: ${pattern}`);
           const matches = allFiles.filter(f => minimatch.minimatch(f, pattern, { nocase: true }));
           
-          logger.debug('tool:find_files', `Found ${matches.length} matches for "${name_pattern}"`);
+          logger.info('tool:find_files', `Found ${matches.length} matches for "${name_pattern}"`);
           const sortedMatches = matches.toSorted((a, b) => a.localeCompare(b));
           return JSON.stringify({
             pattern: name_pattern,

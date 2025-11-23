@@ -15,7 +15,7 @@ declare global {
     llmProvider?: LLMProviderConfig;
     sourceRoot?: string;
     docsRoot?: string;
-    logging?: LoggingConfig;
+    logger?: any; // AstroIntegrationLogger from Astro
   };
 }
 

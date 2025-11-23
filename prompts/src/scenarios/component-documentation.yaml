@@ -1,0 +1,91 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Scenario
+metadata:
+  name: component-documentation-scenarios
+spec:
+  task_type: code-analysis
+  description: "Test scenarios for component/feature documentation to source code mapping"
+
+  turns:
+    - role: user
+      content: |
+        Analyze this documentation and identify the relevant source files:
+        
+        Document Path: docs/features/feedback-widget.md
+        Document Title: Feedback Widget
+        
+        # Feedback Widget
+        
+        Interactive UI component for collecting user feedback on documentation pages.
+        
+        ## Features
+        - Floating button in bottom-right corner
+        - Modal dialog for feedback submission
+        - Multiple feedback types: suggestion, bug report, question
+        
+        ## Implementation
+        Automatically injected when enabled:
+        ```javascript
+        enableFeedbackWidget: true
+        ```
+        
+        Uses vanilla JavaScript. Key components:
+        - Core widget logic
+        - Template definitions
+        - Event handlers and API communication
+
+      assertions:
+        - type: is_valid_json
+          params:
+            allow_wrapped: true
+            extract_json: true
+          message: "Response should be valid JSON"
+        
+        - type: json_schema
+          params:
+            schema:
+              type: object
+              required: ["files", "folders", "confidence", "reasoning"]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                folders:
+                  type: array
+                  items:
+                    type: string
+                confidence:
+                  type: string
+                  enum: ["high", "medium", "low"]
+                reasoning:
+                  type: array
+                  items:
+                    type: string
+            allow_wrapped: true
+            extract_json: true
+          message: "Response should match expected schema"
+        
+        - type: json_path
+          params:
+            jmespath_expression: "files[?@ == 'src/client/feedback-widget.ts']"
+            min_results: 1
+            allow_wrapped: true
+            extract_json: true
+          message: "Should identify main feedback widget file"
+        
+        - type: json_path
+          params:
+            jmespath_expression: "folders[?@ == 'src/client']"
+            min_results: 1
+            allow_wrapped: true
+            extract_json: true
+          message: "Should identify client folder"
+        
+        - type: json_path
+          params:
+            jmespath_expression: "confidence"
+            expected: "high"
+            allow_wrapped: true
+            extract_json: true
+          message: "Should have high confidence"

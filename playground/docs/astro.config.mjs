@@ -1,9 +1,11 @@
 import { defineConfig } from 'astro/config';
-import astroAICoauthor from '../dist/index.js';
+import mdx from '@astrojs/mdx';
+import astroAICoauthor from '../../dist/index.js';
 
 // https://astro.build/config
 export default defineConfig({
   integrations: [
+    mdx(),
     astroAICoauthor({
       enableFeedbackWidget: true,
       feedbackStorePath: '.local-doc-feedback.json',
@@ -20,17 +22,11 @@ export default defineConfig({
         cacheTTL: 3600,  // 1 hour cache
       },
       
-      // Source code location
-      sourceRoot: '../src',
+      // Source code location - points to the sample application
+      sourceRoot: '../code/src',
       
       // Documentation location
       docsRoot: 'src/pages',
-      
-      // Logging configuration
-      logging: {
-        level: 'debug',  // 'none' | 'error' | 'warn' | 'info' | 'debug'
-        prefix: 'ai-coauthor',
-      },
     }),
   ],
 });

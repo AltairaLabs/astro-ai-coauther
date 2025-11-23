@@ -14,11 +14,13 @@ import type {
 import { buildFileTree } from './file-tree';
 import { ContextMatcher, extractKeywords, matchKeywordsToFiles } from './pattern-matcher';
 import {
-  readSourceContext,
-  updateSourceContext,
   readDocumentationPage,
   removeAICoauthorData,
 } from './frontmatter';
+import {
+  saveSourceContext as saveToStorage,
+  readSourceContext as readFromStorage,
+} from './source-context-storage';
 import { createLLMProvider, isLLMAvailable } from './llm/provider-factory';
 import { getLogger } from './logger';
 
@@ -359,7 +361,7 @@ export async function saveSourceContext(
   sourceContext: SourceContext,
   namespace: string = 'aiCoauthor'
 ): Promise<void> {
-  await updateSourceContext(docPath, sourceContext, namespace);
+  await saveToStorage(docPath, sourceContext, namespace);
 }
 
 /**
@@ -373,7 +375,7 @@ export async function loadSourceContext(
   docPath: string,
   namespace: string = 'aiCoauthor'
 ): Promise<SourceContext | null> {
-  return readSourceContext(docPath, namespace);
+  return readFromStorage(docPath, namespace);
 }
 
 /**

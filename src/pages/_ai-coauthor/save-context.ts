@@ -39,9 +39,33 @@ export const POST: APIRoute = async ({ request }) => {
     
     // Assume docs are in src/pages or similar
     const docsRoot = process.env.DOCS_ROOT || 'src/pages';
-    const docFilePath = path.resolve(projectRoot, docsRoot, `${urlPath}.astro`);
     
-    // Save to frontmatter
+    // Try to find the actual file (could be .astro, .md, or .mdx)
+    const possibleExtensions = ['.astro', '.md', '.mdx'];
+    let docFilePath: string | null = null;
+    
+    for (const ext of possibleExtensions) {
+      const testPath = path.resolve(projectRoot, docsRoot, `${urlPath}${ext}`);
+      try {
+        const fs = await import('node:fs/promises');
+        await fs.access(testPath);
+        docFilePath = testPath;
+        break;
+      } catch {
+        // File doesn't exist with this extension, try next
+      }
+    }
+    
+    if (!docFilePath) {
+      return new Response(
+        JSON.stringify({ 
+          error: `Could not find documentation file for path: ${docPath}. Tried extensions: ${possibleExtensions.join(', ')}` 
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Save to appropriate storage (frontmatter for .md/.mdx, JSDoc for .astro)
     await saveSourceContext(docFilePath, sourceContext);
     
     return new Response(

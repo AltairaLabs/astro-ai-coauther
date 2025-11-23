@@ -55,59 +55,92 @@ function createWinstonLogger(config: LoggingConfig): winston.Logger {
 }
 
 /**
- * Logger wrapper that provides component-scoped logging
+ * Logger wrapper that uses Astro's logger when available
+ * Falls back to simple console logging otherwise
  */
 export class Logger {
-  private readonly logger: winston.Logger;
-
-  constructor(config?: LoggingConfig) {
-    const logConfig = config || {
-      level: 'info',
-      prefix: 'ai-coauthor',
-    };
-    this.logger = createWinstonLogger(logConfig);
-  }
 
   error(component: string, message: string, ...meta: any[]): void {
-    this.logger.error(message, { component, ...meta });
+    const astroLogger = getAstroLogger();
+    if (astroLogger) {
+      // Include meta in the message if present
+      const fullMessage = meta.length > 0 
+        ? `[${component}] ${message} ${meta.map(m => m instanceof Error ? m.message : JSON.stringify(m)).join(' ')}`
+        : `[${component}] ${message}`;
+      astroLogger.error(fullMessage);
+      // Also log stack trace for errors
+      meta.forEach(m => {
+        if (m instanceof Error && m.stack) {
+          astroLogger.error(m.stack);
+        }
+      });
+    } else {
+      console.error(`[ai-coauthor:${component}]`, message, ...meta);
+    }
   }
 
   warn(component: string, message: string, ...meta: any[]): void {
-    this.logger.warn(message, { component, ...meta });
+    const astroLogger = getAstroLogger();
+    if (astroLogger) {
+      astroLogger.warn(`[${component}] ${message}`);
+    } else {
+      console.warn(`[ai-coauthor:${component}]`, message, ...meta);
+    }
   }
 
   info(component: string, message: string, ...meta: any[]): void {
-    this.logger.info(message, { component, ...meta });
+    const astroLogger = getAstroLogger();
+    if (astroLogger) {
+      astroLogger.info(`[${component}] ${message}`);
+    } else {
+      console.log(`[ai-coauthor:${component}]`, message, ...meta);
+    }
   }
 
   debug(component: string, message: string, ...meta: any[]): void {
-    this.logger.debug(message, { component, ...meta });
+    const astroLogger = getAstroLogger();
+    if (astroLogger) {
+      // Astro logger might not have debug - use info instead
+      if (typeof astroLogger.debug === 'function') {
+        astroLogger.debug(`[${component}] ${message}`);
+      } else {
+        astroLogger.info(`[${component}] 🔍 ${message}`);
+      }
+    } else if (process.env.NODE_ENV === 'development') {
+      // Debug logs only in development
+      console.debug(`[ai-coauthor:${component}]`, message, ...meta);
+    }
   }
 
   // Convenience methods
   success(component: string, message: string, ...meta: any[]): void {
-    this.logger.info(`✓ ${message}`, { component, ...meta });
+    this.info(component, `✓ ${message}`, ...meta);
   }
 
   start(component: string, message: string, ...meta: any[]): void {
-    this.logger.info(`▶ ${message}`, { component, ...meta });
+    this.info(component, `▶ ${message}`, ...meta);
   }
 
   step(component: string, message: string, ...meta: any[]): void {
-    this.logger.info(`→ ${message}`, { component, ...meta });
+    this.info(component, `→ ${message}`, ...meta);
   }
 }
 
+// Singleton logger instance
+let loggerInstance: Logger | null = null;
+
 /**
- * Get logger instance with current global config
+ * Get logger instance
+ * Uses Astro's logger when available, otherwise falls back to Winston
  */
 export function getLogger(): Logger {
-  const config = (globalThis as any).__ASTRO_COAUTHOR__?.logging || {
-    level: 'info',
-    prefix: 'ai-coauthor',
-  };
-  
-  // Always create a fresh logger with current config
-  // (config can change between requests in dev mode)
-  return new Logger(config);
+  loggerInstance ??= new Logger();
+  return loggerInstance;
+}
+
+/**
+ * Get Astro's logger if available
+ */
+function getAstroLogger(): any {
+  return (globalThis as any).__ASTRO_COAUTHOR__?.logger;
 }

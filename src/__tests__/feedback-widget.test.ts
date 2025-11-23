@@ -313,14 +313,25 @@ describe('Feedback Widget', () => {
   it('should reset form after successful submission', async () => {
     vi.useFakeTimers();
     
-    (globalThis.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-    });
+    // Mock fetch for both loadCurrentFrontmatter and submit
+    (globalThis.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ sourceContext: null })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+      });
     
     // Open panel
     const toggleBtn = document.getElementById('ai-coauthor-toggle');
     toggleBtn?.click();
+    
+    // Wait for loadCurrentFrontmatter to complete
+    await vi.advanceTimersByTimeAsync(0);
+    await Promise.resolve();
     
     // Fill form
     const ratingBtns = document.querySelectorAll('.rating-btn');
@@ -338,11 +349,12 @@ describe('Feedback Widget', () => {
     const submitBtn = document.getElementById('ai-coauthor-submit');
     submitBtn?.click();
     
-    // Wait for promise to resolve
+    // Wait for fetch promise to resolve
+    await vi.advanceTimersByTimeAsync(0);
     await Promise.resolve();
     await Promise.resolve();
     
-    // Now advance timers
+    // Now advance timers for the reset delay
     await vi.advanceTimersByTimeAsync(1500);
     
     // Check panel is hidden

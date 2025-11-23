@@ -22,12 +22,16 @@ import { AgenticDetector } from './agentic-detector';
 export class OpenAIAgenticProvider implements LLMProvider {
   readonly name = 'openai-agentic';
   private readonly config: OpenAIConfig;
+  private readonly projectRoot: string;
   private readonly model: ChatOpenAI;
   private readonly cache?: LLMCache;
-  private readonly detector: AgenticDetector;
+  private detector?: AgenticDetector;
 
   constructor(config: OpenAIConfig, projectRoot: string) {
     this.config = config;
+    this.projectRoot = projectRoot;
+    
+    logger.debug('llm-agentic', `Initializing OpenAI provider - API key: ${config.apiKey ? 'present (length: ' + config.apiKey.length + ')' : 'missing'}`);
 
     // Initialize LangChain ChatOpenAI
     this.model = new ChatOpenAI({
@@ -41,12 +45,6 @@ export class OpenAIAgenticProvider implements LLMProvider {
       },
     });
 
-    // Initialize agentic detector
-    this.detector = new AgenticDetector({
-      projectRoot,
-      modelName: config.model || 'gpt-4-turbo-preview',
-    });
-
     // Initialize cache if enabled
     if (config.cacheResults !== false) {
       this.cache = new LLMCache(config.cacheTTL);
@@ -54,12 +52,26 @@ export class OpenAIAgenticProvider implements LLMProvider {
   }
 
   /**
+   * Lazy-initialize the agentic detector only when needed
+   */
+  private getDetector(): AgenticDetector {
+    this.detector ??= new AgenticDetector({
+      projectRoot: this.projectRoot,
+      modelName: this.config.model || 'gpt-4-turbo-preview',
+    });
+    return this.detector;
+  }
+
+  /**
    * Check if provider is available
    */
   async isAvailable(): Promise<boolean> {
     try {
-      return !!this.config.apiKey && this.config.apiKey.length > 0;
-    } catch {
+      const hasKey = !!this.config.apiKey && this.config.apiKey.length > 0;
+      logger.debug('llm-agentic', `API key check: ${hasKey ? 'present' : 'missing'} (length: ${this.config.apiKey?.length || 0})`);
+      return hasKey;
+    } catch (error) {
+      logger.error('llm-agentic', 'Error checking availability:', error);
       return false;
     }
   }
@@ -80,7 +92,8 @@ export class OpenAIAgenticProvider implements LLMProvider {
     }
 
     // Use the agentic detector
-    const result = await this.detector.detectSourceContext(this.model, request);
+    const detector = this.getDetector();
+    const result = await detector.detectSourceContext(this.model, request);
 
     // Cache the result
     if (this.cache && result.confidence !== 'low') {

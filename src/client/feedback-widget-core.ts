@@ -83,6 +83,13 @@ export class FeedbackWidget {
     // Source context buttons
     sourceDetectBtn?.addEventListener('click', () => this.detectSourceContext());
     sourceSaveBtn?.addEventListener('click', () => this.saveSourceContext());
+    
+    // Load current frontmatter when panel opens
+    toggleBtn?.addEventListener('click', () => {
+      if (this.isWidgetVisible) {
+        this.loadCurrentFrontmatter();
+      }
+    });
   }
 
   private togglePanel(panel: HTMLElement | null): void {
@@ -196,6 +203,62 @@ export class FeedbackWidget {
   }
 
   private currentSourceContext: any = null;
+
+  private async loadCurrentFrontmatter(): Promise<void> {
+    const frontmatterContent = this.document.getElementById('frontmatter-content');
+    if (!frontmatterContent) return;
+    
+    try {
+      const docPath = this.window?.location?.pathname || '';
+      const response = await fetch(`/_ai-coauthor/get-frontmatter?path=${encodeURIComponent(docPath)}`);
+      
+      if (!response.ok) {
+        frontmatterContent.textContent = 'No frontmatter found';
+        frontmatterContent.style.fontStyle = 'italic';
+        return;
+      }
+      
+      const data = await response.json();
+      const sourceContext = data.sourceContext;
+      
+      if (!sourceContext) {
+        frontmatterContent.textContent = 'No source context mapped yet';
+        frontmatterContent.style.fontStyle = 'italic';
+        return;
+      }
+      
+      // Display current mapping (even if empty arrays)
+      const hasFiles = sourceContext.files?.length > 0;
+      const hasFolders = sourceContext.folders?.length > 0;
+      
+      if (!hasFiles && !hasFolders) {
+        frontmatterContent.innerHTML = `
+          Files: <em>none</em><br>
+          Folders: <em>none</em><br>
+          <span style="color: #9CA3AF; font-size: 10px;">Confidence: ${sourceContext.confidence || 'unknown'}</span>
+        `;
+        frontmatterContent.style.fontStyle = 'normal';
+        return;
+      }
+      
+      const filesStr = hasFiles 
+        ? `Files: ${sourceContext.files.join(', ')}` 
+        : 'Files: <em>none</em>';
+      const foldersStr = hasFolders 
+        ? `Folders: ${sourceContext.folders.join(', ')}` 
+        : 'Folders: <em>none</em>';
+      
+      frontmatterContent.innerHTML = `
+        ${filesStr}<br>${foldersStr}
+      `.trim();
+      frontmatterContent.style.fontStyle = 'normal';
+      
+    } catch (error) {
+      console.error('[frontmatter] Load error:', error);
+      frontmatterContent.textContent = 'Failed to load';
+      frontmatterContent.style.color = '#DC2626';
+    }
+  }
 
   private async detectSourceContext(): Promise<void> {
     const detectBtn = this.document.getElementById('source-detect-btn');

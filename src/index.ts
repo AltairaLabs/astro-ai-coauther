@@ -147,7 +147,6 @@ export default function astroAICoauthor(
     storage = new FileStorageAdapter(
       process.env.ASTRO_COAUTHOR_FEEDBACK_PATH ?? '.astro-doc-feedback.json'
     ),
-    logging = { level: 'info', prefix: 'ai-coauthor' },
   } = options;
   
   globalThis.__ASTRO_COAUTHOR__ = { 
@@ -155,16 +154,22 @@ export default function astroAICoauthor(
     llmProvider,
     sourceRoot,
     docsRoot,
-    logging: {
-      level: logging.level || 'info',
-      prefix: logging.prefix || 'ai-coauthor',
-    },
   };
 
   return {
     name: 'astro-ai-coauthor',
     hooks: {
-      'astro:config:setup': ({ command, injectScript, injectRoute, updateConfig }) => {
+      'astro:config:setup': ({ command, injectScript, injectRoute, updateConfig, logger }) => {
+        // Store Astro's logger in global for use throughout the integration
+        globalThis.__ASTRO_COAUTHOR__.logger = logger;
+        
+        // Check what methods the logger has
+        logger.info('AI Coauthor integration initialized');
+        if (typeof logger.debug === 'function') {
+          logger.debug('Debug logging is available');
+        } else {
+          logger.info('Note: Astro logger does not support debug level - using info level for all logs');
+        }
         // Inject feedback widget script in development mode
         if (command === 'dev' && enableFeedbackWidget) {
           const widgetPath = fileURLToPath(
@@ -227,6 +232,14 @@ export default function astroAICoauthor(
             pattern: '/_ai-coauthor/save-context',
             entrypoint: fileURLToPath(
               new URL('../src/pages/_ai-coauthor/save-context.ts', import.meta.url)
+            ).replace('/dist/', '/'),
+          });
+
+          // Get frontmatter API endpoint
+          injectRoute({
+            pattern: '/_ai-coauthor/get-frontmatter',
+            entrypoint: fileURLToPath(
+              new URL('../src/pages/_ai-coauthor/get-frontmatter.ts', import.meta.url)
             ).replace('/dist/', '/'),
           });
 

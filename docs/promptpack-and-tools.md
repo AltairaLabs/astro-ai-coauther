@@ -26,7 +26,7 @@ The `source-context-detection.json` file defines:
 
 ### Editing Prompts
 
-To modify the LLM behavior, edit `prompts/source-context-detection.json`:
+To modify the LLM behavior, edit the PromptArena config in `prompts/src/prompts/source-context-detection.yaml`, then compile to `prompts/dist/source-context-detection.json`:
 
 ```json
 {
