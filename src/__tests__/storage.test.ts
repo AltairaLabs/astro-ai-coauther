@@ -135,7 +135,8 @@ describe('Storage Adapters', () => {
 
       expect(entries).toEqual([]);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[astro-ai-coauthor] Feedback store was not an array, resetting file'
+        '[ai-coauthor:storage]',
+        'Feedback store was not an array, resetting file'
       );
 
       consoleWarnSpy.mockRestore();
@@ -152,7 +153,8 @@ describe('Storage Adapters', () => {
 
       expect(entries).toEqual([]);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[astro-ai-coauthor] Failed to read feedback store, resetting file:',
+        '[ai-coauthor:storage]',
+        'Failed to read feedback store, resetting file',
         expect.any(Error)
       );
 

@@ -6,7 +6,9 @@
 import * as fs from 'node:fs/promises';
 import matter from 'gray-matter';
 import type { SourceContext, AICoauthorFrontmatter } from '../types';
+import { getLogger } from './logger.js';
 
+const logger = getLogger();
 const DEFAULT_NAMESPACE = 'aiCoauthor';
 
 /**
@@ -27,9 +29,7 @@ export async function readSourceContext(
     const aiData = data[namespace] as AICoauthorFrontmatter['aiCoauthor'];
     return aiData?.sourceContext ?? null;
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(`Failed to read source context from ${filePath}:`, error.message);
-    }
+    logger.error('frontmatter', `Failed to read source context from ${filePath}`, error);
     return null;
   }
 }
@@ -51,9 +51,7 @@ export async function readAICoauthorData(
     
     return (data[namespace] as AICoauthorFrontmatter['aiCoauthor']) ?? {};
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(`Failed to read AI Coauthor data from ${filePath}:`, error.message);
-    }
+    logger.error('frontmatter', `Failed to read AI Coauthor data from ${filePath}`, error);
     return {};
   }
 }

@@ -5,6 +5,9 @@
 
 import type { LLMProvider, LLMProviderConfig } from '../../types';
 import { OpenAIAgenticProvider } from './openai-provider-agentic';
+import { getLogger } from '../logger.js';
+
+const logger = getLogger();
 
 /**
  * Create an LLM provider from configuration
@@ -48,7 +51,7 @@ export async function isLLMAvailable(
     return available;
   } catch (error) {
     // Log the error to help debugging
-    console.error('isLLMAvailable error:', error);
+    logger.error('llm-provider', 'isLLMAvailable error', error);
     return false;
   }
 }

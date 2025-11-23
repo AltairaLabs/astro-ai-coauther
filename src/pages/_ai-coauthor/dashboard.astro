@@ -38,7 +38,7 @@ try {
   const tasksData = await tasksResponse.json();
   tasks = tasksData.tasks || [];
 } catch (error) {
-  console.error('🟣 [DASHBOARD] Failed to load data:', error);
+  // Failed to load data, use defaults
 }
 
 // Group feedback by page
@@ -480,7 +480,6 @@ const feedbackByPage = feedbackData.entries?.reduce((acc: any, entry: any) => {
           // Job not found or completed, clear storage
           sessionStorage.removeItem('activeDetectionJob');
         } catch (error) {
-          console.error('Failed to resume stored job:', error);
           sessionStorage.removeItem('activeDetectionJob');
         }
       }
@@ -523,7 +522,7 @@ const feedbackByPage = feedbackData.entries?.reduce((acc: any, entry: any) => {
           }
         }
       } catch (error) {
-        console.error('Failed to check active jobs:', error);
+        // Failed to check active jobs
       }
     }
 

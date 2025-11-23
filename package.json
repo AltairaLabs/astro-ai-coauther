@@ -65,18 +65,20 @@
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
     "@babel/traverse": "^7.28.5",
+    "@eslint/js": "^9.39.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@playwright/test": "^1.56.1",
     "@types/babel__generator": "^7.27.0",
     "@types/babel__traverse": "^7.28.0",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^20.19.25",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript-eslint/eslint-plugin": "^8.47.0",
+    "@typescript-eslint/parser": "^8.47.0",
     "@vitest/coverage-v8": "^4.0.10",
     "astro": "^4.0.0",
     "babel-plugin-istanbul": "^7.0.1",
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
     "happy-dom": "^20.0.10",
     "istanbul-lib-coverage": "^3.2.2",
     "jsdom": "^27.2.0",
@@ -94,7 +96,7 @@
     "gray-matter": "^4.0.3",
     "ignore": "^7.0.5",
     "langchain": "^1.0.6",
-    "winston": "^3.18.3",
-    "tmp": "^0.2.5"
+    "tmp": "^0.2.5",
+    "winston": "^3.18.3"
   }
 }

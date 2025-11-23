@@ -52,7 +52,6 @@ export const GET: APIRoute = async ({ url }) => {
     );
     
   } catch (error: unknown) {
-    console.error('[ai-coauthor] Job status error:', error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error' 

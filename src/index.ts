@@ -180,7 +180,7 @@ export default function astroAICoauthor(
           injectScript('page', `
             if (import.meta.env.MODE === 'development') {
               import('${widgetPath}')
-                .catch(err => console.error('[astro-ai-coauthor] Failed to load feedback widget:', err));
+                .catch(() => {});
             }
           `);
         }

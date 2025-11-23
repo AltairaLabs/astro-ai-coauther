@@ -81,7 +81,6 @@ export const POST: APIRoute = async ({ request }) => {
     );
     
   } catch (error: unknown) {
-    console.error('[ai-coauthor] Save error:', error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error' 

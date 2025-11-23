@@ -8,6 +8,9 @@ import * as path from 'node:path';
 import { globby } from 'globby';
 import ignore from 'ignore';
 import type { FileTree } from '../types';
+import { getLogger } from './logger.js';
+
+const logger = getLogger();
 
 /**
  * Build a file tree structure for the project
@@ -76,7 +79,7 @@ async function buildTreeNode(
       children.push(child);
     } catch (error) {
       // Skip files/directories we can't read
-      console.warn(`Skipping ${entryPath}: ${error}`);
+      logger.warn('file-tree', `Skipping ${entryPath}`, error);
     }
   }
   

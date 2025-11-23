@@ -112,7 +112,7 @@ export class FeedbackWidget {
     }
   }
 
-  private selectRating(btn: HTMLElement, allBtns: NodeListOf<Element>): void {
+  private selectRating(btn: HTMLElement, allBtns: NodeListOf<Element>): void { // eslint-disable-line no-undef
     for (const b of allBtns) {
       b.classList.remove('selected');
     }
@@ -140,8 +140,6 @@ export class FeedbackWidget {
         rating: this.feedbackData.rating,
       };
 
-      console.debug('[astro-ai-coauthor] Submitting feedback payload:', payload);
-
       const response = await fetch('/_ai-coauthor/feedback', {
         method: 'POST',
         headers: {
@@ -149,8 +147,6 @@ export class FeedbackWidget {
         },
         body: JSON.stringify(payload),
       });
-
-      console.debug('[astro-ai-coauthor] Feedback submission response:', response.status);
 
       if (response.ok) {
         if (statusEl) {
@@ -168,8 +164,8 @@ export class FeedbackWidget {
       } else {
         throw new Error('Failed to submit feedback');
       }
-    } catch (error) {
-      console.error('[astro-ai-coauthor] Error submitting feedback:', error);
+    } catch {
+      // Handle error silently - show user feedback only
       if (statusEl) {
         statusEl.textContent = '✗ Failed to submit';
         statusEl.style.color = '#DC2626';
@@ -255,10 +251,10 @@ export class FeedbackWidget {
       }
       
       const filesStr = hasFiles 
-        ? `Files: ${sourceContext.files.map(f => escapeHtml(f)).join(', ')}` 
+        ? `Files: ${sourceContext.files.map((f: string) => escapeHtml(f)).join(', ')}` 
         : 'Files: <em>none</em>';
       const foldersStr = hasFolders 
-        ? `Folders: ${sourceContext.folders.map(f => escapeHtml(f)).join(', ')}` 
+        ? `Folders: ${sourceContext.folders.map((f: string) => escapeHtml(f)).join(', ')}` 
         : 'Folders: <em>none</em>';
       
       frontmatterContent.innerHTML = `
@@ -266,8 +262,8 @@ export class FeedbackWidget {
       `.trim();
       frontmatterContent.style.fontStyle = 'normal';
       
-    } catch (error) {
-      console.error('[frontmatter] Load error:', error);
+    } catch {
+      // Handle error silently - show user feedback only
       frontmatterContent.textContent = 'Failed to load';
       frontmatterContent.style.color = '#DC2626';
     }
@@ -291,14 +287,8 @@ export class FeedbackWidget {
         docContent: pageContent.substring(0, 5000), // Limit content size
       };
       
-      console.log('[source-context] Sending detection request:', { 
-        docPath: payload.docPath, 
-        contentLength: payload.docContent.length 
-      });
-      
       // Parse JSON body the same way as feedback endpoint
       const rawBody = JSON.stringify(payload);
-      console.log('[source-context] Raw body length:', rawBody.length);
       
       const response = await fetch('/_ai-coauthor/detect-context', {
         method: 'POST',
@@ -308,23 +298,17 @@ export class FeedbackWidget {
         body: rawBody,
       });
       
-      console.log('[source-context] Response status:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[source-context] Error response:', errorText);
         throw new Error(`Detection failed: ${response.status}`);
       }
       
       this.currentSourceContext = await response.json();
-      console.log('[source-context] Detection result:', this.currentSourceContext);
       this.displaySourceContext(contentDiv, this.currentSourceContext);
       
       if (saveBtn) {
         (saveBtn as HTMLElement).style.display = 'block';
       }
     } catch (error) {
-      console.error('[source-context] Error:', error);
       contentDiv.innerHTML = `<div style="color: #DC2626;">Failed to detect: ${escapeHtml(String(error))}</div>`;
     } finally {
       detectBtn.textContent = '🔍 Detect';
@@ -333,14 +317,10 @@ export class FeedbackWidget {
   }
 
   private displaySourceContext(container: HTMLElement, result: any): void {
-    console.log('[source-context] Displaying result:', result);
-    
     const files = result.sourceContext?.files || [];
     const folders = result.sourceContext?.folders || [];
     const confidence = result.confidence || 'low';
     const reasoning = result.reasoning || [];
-    
-    console.log('[source-context] Extracted data:', { files, folders, confidence, reasoning });
     
     const confidenceColors: Record<string, string> = {
       high: '#10B981',
@@ -431,8 +411,6 @@ export class FeedbackWidget {
         setTimeout(() => successMsg.remove(), 3000);
       }
     } catch (error) {
-      console.error('[source-context] Save error:', error);
-      
       if (contentDiv) {
         const errorMsg = this.document.createElement('div');
         errorMsg.style.cssText = 'color: #EF4444; font-weight: 500; margin-top: 8px; font-size: 11px;';

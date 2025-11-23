@@ -9,7 +9,6 @@ export interface LoggingConfig {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __ASTRO_COAUTHOR__: {
     storage: FeedbackStorageAdapter;
     llmProvider?: LLMProviderConfig;

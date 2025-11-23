@@ -5,6 +5,10 @@
 
 import * as path from 'node:path';
 import { globby } from 'globby';
+import { getLogger } from './logger.js';
+
+const logger = getLogger();
+
 import type {
   ContextDetectionResult,
   SourceContext,
@@ -22,9 +26,6 @@ import {
   readSourceContext as readFromStorage,
 } from './source-context-storage';
 import { createLLMProvider, isLLMAvailable } from './llm/provider-factory';
-import { getLogger } from './logger';
-
-const logger = getLogger();
 
 const DEFAULT_CONFIG: SourceContextConfig = {
   enabled: true,
@@ -406,9 +407,7 @@ export async function removeAllSourceContexts(
       await removeAICoauthorData(fullPath, namespace);
       cleanedCount++;
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error(`Failed to clean ${docFile}:`, error.message);
-      }
+      logger.error('source-context', `Failed to clean ${docFile}`, error);
     }
   }
   

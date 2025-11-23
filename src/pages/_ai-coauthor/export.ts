@@ -1,6 +1,9 @@
 import type { APIContext } from 'astro';
 import { exportFeedback, generateAnalytics, generateTasks } from '../../utils/export.js';
 import type { ExportOptions } from '../../utils/export.js';
+import { getLogger } from '../../utils/logger.js';
+
+const logger = getLogger();
 
 // Force this endpoint to be server-rendered
 export const prerender = false;
@@ -32,7 +35,7 @@ export async function GET({ url }: APIContext): Promise<Response> {
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('[astro-ai-coauthor] Export error:', error?.message);
+    logger.error('export', 'Failed to export feedback', error);
     return new Response(
       JSON.stringify({ error: 'Failed to export feedback' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
