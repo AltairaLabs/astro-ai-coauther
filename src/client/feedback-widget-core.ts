@@ -23,6 +23,19 @@
 
 import widgetTemplate from './templates/widget.html?raw';
 
+/**
+ * Escape HTML special characters to prevent XSS attacks
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+    .replaceAll('/', '&#x2F;');
+}
+
 export interface FeedbackData {
   pageUrl: string;
   timestamp: string;
@@ -242,10 +255,10 @@ export class FeedbackWidget {
       }
       
       const filesStr = hasFiles 
-        ? `Files: ${sourceContext.files.join(', ')}` 
+        ? `Files: ${sourceContext.files.map(f => escapeHtml(f)).join(', ')}` 
         : 'Files: <em>none</em>';
       const foldersStr = hasFolders 
-        ? `Folders: ${sourceContext.folders.join(', ')}` 
+        ? `Folders: ${sourceContext.folders.map(f => escapeHtml(f)).join(', ')}` 
         : 'Folders: <em>none</em>';
       
       frontmatterContent.innerHTML = `
@@ -312,7 +325,7 @@ export class FeedbackWidget {
       }
     } catch (error) {
       console.error('[source-context] Error:', error);
-      contentDiv.innerHTML = `<div style="color: #DC2626;">Failed to detect: ${error}</div>`;
+      contentDiv.innerHTML = `<div style="color: #DC2626;">Failed to detect: ${escapeHtml(String(error))}</div>`;
     } finally {
       detectBtn.textContent = '🔍 Detect';
       (detectBtn as HTMLButtonElement).disabled = false;
@@ -335,7 +348,7 @@ export class FeedbackWidget {
       low: '#EF4444',
     };
     
-    const filesList = files.slice(0, 5).map((f: string) => `<li style="margin: 2px 0;">${f}</li>`).join('');
+    const filesList = files.slice(0, 5).map((f: string) => `<li style="margin: 2px 0;">${escapeHtml(f)}</li>`).join('');
     const moreFiles = files.length > 5 ? `<li style="color: #9CA3AF;">+${files.length - 5} more...</li>` : '';
     const filesSection = files.length > 0 ? `
       <div style="margin-bottom: 6px; font-weight: 500; color: #374151;">Files:</div>
@@ -347,7 +360,7 @@ export class FeedbackWidget {
     const foldersSection = folders.length > 0 ? `
       <div style="margin-bottom: 6px; font-weight: 500; color: #374151;">Folders:</div>
       <ul style="margin: 0 0 8px 0; padding-left: 20px; font-size: 11px; color: #6B7280;">
-        ${folders.map((f: string) => `<li style="margin: 2px 0;">${f}</li>`).join('')}
+        ${folders.map((f: string) => `<li style="margin: 2px 0;">${escapeHtml(f)}</li>`).join('')}
       </ul>
     ` : '';
     
@@ -355,7 +368,7 @@ export class FeedbackWidget {
       <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB;">
         <div style="margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 11px;">Reasoning:</div>
         <ul style="margin: 0; padding-left: 20px; font-size: 10px; color: #6B7280;">
-          ${reasoning.slice(0, 3).map((r: string) => `<li style="margin: 2px 0;">${r}</li>`).join('')}
+          ${reasoning.slice(0, 3).map((r: string) => `<li style="margin: 2px 0;">${escapeHtml(r)}</li>`).join('')}
         </ul>
       </div>
     ` : '';
