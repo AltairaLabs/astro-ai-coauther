@@ -4,6 +4,7 @@
  */
 
 import type { APIRoute } from 'astro';
+import type {} from '../../global.d.js';
 import { detectSourceContext } from '../../utils/source-context-detection';
 import { readDocumentationPage } from '../../utils/frontmatter';
 import { globby } from 'globby';
@@ -20,7 +21,7 @@ export const POST: APIRoute = async () => {
   logger.start('detect-all', 'Starting batch detection request');
   try {
     // Get configuration from global context
-    const globalConfig = (globalThis as any).__ASTRO_COAUTHOR__;
+    const globalConfig = globalThis.__ASTRO_COAUTHOR__;
     const projectRoot = process.env.ASTRO_PROJECT_ROOT || process.cwd();
     logger.debug('detect-all', 'Project root set.');
     

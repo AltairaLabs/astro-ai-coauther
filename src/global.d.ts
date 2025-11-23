@@ -8,14 +8,21 @@ export interface LoggingConfig {
   prefix?: string;
 }
 
+interface AstroIntegrationLogger {
+  info(message: string): void;
+  warn(message: string): void;
+  error(message: string): void;
+  debug(message: string): void;
+}
+
 declare global {
   var __ASTRO_COAUTHOR__: {
     storage: FeedbackStorageAdapter;
     llmProvider?: LLMProviderConfig;
     sourceRoot?: string;
     docsRoot?: string;
-    logger?: any; // AstroIntegrationLogger from Astro
-  };
+    logger?: AstroIntegrationLogger;
+  } | undefined;
 }
 
 // Declare HTML file imports as raw strings

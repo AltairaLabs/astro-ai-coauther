@@ -134,5 +134,5 @@ export function getLogger(): Logger {
  * Get Astro's logger if available
  */
 function getAstroLogger(): any {
-  return (globalThis as any).__ASTRO_COAUTHOR__?.logger;
+  return globalThis.__ASTRO_COAUTHOR__?.logger;
 }

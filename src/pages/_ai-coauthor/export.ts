@@ -9,7 +9,13 @@ const logger = getLogger();
 export const prerender = false;
 
 export async function GET({ url }: APIContext): Promise<Response> {
-  const storage = (globalThis as any).__ASTRO_COAUTHOR__.storage;
+  const storage = globalThis.__ASTRO_COAUTHOR__?.storage;
+  if (!storage) {
+    return new Response(JSON.stringify({ error: 'Storage not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const searchParams = url.searchParams;

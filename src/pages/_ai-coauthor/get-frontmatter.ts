@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
     
     // Get configuration
-    const globalConfig = (globalThis as any).__ASTRO_COAUTHOR__;
+    const globalConfig = globalThis.__ASTRO_COAUTHOR__;
     const projectRoot = process.env.ASTRO_PROJECT_ROOT || process.cwd();
     const docsRoot = globalConfig?.docsRoot || process.env.DOCS_ROOT || 'src/pages';
     

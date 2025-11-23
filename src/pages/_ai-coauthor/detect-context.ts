@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
     logger.debug('detect-context', `Doc path: ${docPath}, content length: ${docContent.length}`);
     
     // Get configuration from global context (set by integration)
-    const globalConfig = (globalThis as any).__ASTRO_COAUTHOR__;
+    const globalConfig = globalThis.__ASTRO_COAUTHOR__;
     const projectRoot = process.env.ASTRO_PROJECT_ROOT || process.cwd();
     logger.debug('detect-context', `Project root: ${projectRoot}`);
     

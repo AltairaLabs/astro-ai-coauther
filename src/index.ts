@@ -161,7 +161,9 @@ export default function astroAICoauthor(
     hooks: {
       'astro:config:setup': ({ command, injectScript, injectRoute, updateConfig, logger }) => {
         // Store Astro's logger in global for use throughout the integration
-        globalThis.__ASTRO_COAUTHOR__.logger = logger;
+        if (globalThis.__ASTRO_COAUTHOR__) {
+          globalThis.__ASTRO_COAUTHOR__.logger = logger;
+        }
         
         // Check what methods the logger has
         logger.info('AI Coauthor integration initialized');

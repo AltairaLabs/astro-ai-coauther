@@ -7,7 +7,13 @@ const logger = getLogger();
 export const prerender = false;
 
 export async function POST({ request }: APIContext): Promise<Response> {
-  const storage = globalThis.__ASTRO_COAUTHOR__.storage;
+  const storage = globalThis.__ASTRO_COAUTHOR__?.storage;
+  if (!storage) {
+    return new Response(JSON.stringify({ error: 'Storage not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const contentType = request.headers.get('content-type') || '';
@@ -73,7 +79,13 @@ export async function POST({ request }: APIContext): Promise<Response> {
 }
 
 export async function GET(): Promise<Response> {
-  const storage = globalThis.__ASTRO_COAUTHOR__.storage;
+  const storage = globalThis.__ASTRO_COAUTHOR__?.storage;
+  if (!storage) {
+    return new Response(JSON.stringify({ error: 'Storage not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const entries = await storage.loadAll();

@@ -29,8 +29,10 @@ export function createLLMProvider(
     case 'local':
       throw new Error('Local model provider not yet implemented');
     
-    default:
-      throw new Error(`Unknown LLM provider type: ${(config as any).type}`);
+    default: {
+      const unknownType = (config as { type?: string }).type || 'unknown';
+      throw new Error(`Unknown LLM provider type: ${unknownType}`);
+    }
   }
 }
 

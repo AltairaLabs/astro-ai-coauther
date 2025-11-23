@@ -19,8 +19,8 @@ vi.mock('@langchain/openai', () => {
 });
 
 vi.mock('../agentic-detector', () => ({
-  AgenticDetector: vi.fn().mockImplementation(() => ({
-    detectSourceContext: vi.fn().mockResolvedValue({
+  AgenticDetector: class MockAgenticDetector {
+    detectSourceContext = vi.fn().mockResolvedValue({
       files: ['test.ts'],
       folders: ['src'],
       confidence: 'high',
@@ -28,8 +28,8 @@ vi.mock('../agentic-detector', () => ({
       model: 'gpt-4',
       tokensUsed: 100,
       cached: false,
-    }),
-  })),
+    });
+  },
 }));
 
 vi.mock('../../logger', () => ({
