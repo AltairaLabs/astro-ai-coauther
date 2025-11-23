@@ -155,6 +155,11 @@ class JobQueue {
         new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
       );
   }
+
+  /** Clear all jobs - for testing only */
+  clearAll(): void {
+    this.jobs.clear();
+  }
 }
 
 // Global singleton instance

@@ -15,7 +15,7 @@ import type {
   SourceContextConfig,
   LLMDetectionRequest,
 } from '../types';
-import { buildFileTree } from './file-tree';
+import { buildFileTree } from './file-tree.js';
 import { ContextMatcher, extractKeywords, matchKeywordsToFiles } from './pattern-matcher';
 import {
   readDocumentationPage,
@@ -109,7 +109,7 @@ async function prepareDetectionContext(
     projectRoot
   );
   
-  const { flattenFileTree, extractFolders } = await import('./file-tree');
+  const { flattenFileTree, extractFolders } = await import('./file-tree.js');
   const availableFiles = flattenFileTree(fileTree);
   const availableFolders = extractFolders(fileTree);
   logger.debug('source-detection', `Found ${availableFiles.length} files, ${availableFolders.length} folders`);
@@ -328,7 +328,7 @@ export async function validateSourceContext(
   projectRoot: string
 ): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = [];
-  const { pathExists } = await import('./file-tree');
+  const { pathExists } = await import('./file-tree.js');
   
   // Check files
   for (const file of context.files) {
