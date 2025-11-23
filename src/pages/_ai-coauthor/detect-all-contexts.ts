@@ -22,21 +22,21 @@ export const POST: APIRoute = async () => {
     // Get configuration from global context
     const globalConfig = (globalThis as any).__ASTRO_COAUTHOR__;
     const projectRoot = process.env.ASTRO_PROJECT_ROOT || process.cwd();
-    logger.debug('detect-all', `Project root: ${projectRoot}`);
+    logger.debug('detect-all', 'Project root set.');
     
     // Get docs root from config
     const docsRoot = path.resolve(
       projectRoot,
       globalConfig?.docsRoot || process.env.DOCS_ROOT || 'docs'
     );
-    logger.debug('detect-all', `Docs root: ${docsRoot}`);
+    logger.debug('detect-all', 'Docs root set.');
     
     // Get source root from config
     const sourceRoot = path.resolve(
       projectRoot, 
       globalConfig?.sourceRoot || process.env.SOURCE_ROOT || 'src'
     );
-    logger.debug('detect-all', `Source root: ${sourceRoot}`);
+    logger.debug('detect-all', 'Source root set.');
     
     // Get LLM provider config if available
     const llmProvider = globalConfig?.llmProvider;
