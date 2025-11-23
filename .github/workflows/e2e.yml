@@ -23,15 +23,10 @@ jobs:
           cache: 'npm'
 
       - name: Install root dependencies
-        run: |
-          rm -rf node_modules
-          npm install
+        run: npm ci
 
       - name: Install playground dependencies
-        run: |
-          cd playground
-          rm -rf node_modules
-          npm install
+        run: cd playground && npm ci
 
       - name: Build integration
         run: npm run build
