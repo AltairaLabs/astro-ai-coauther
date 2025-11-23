@@ -24,11 +24,14 @@ jobs:
 
       - name: Install root dependencies
         run: |
-          npm ci || (rm -rf node_modules package-lock.json && npm install)
+          rm -rf node_modules
+          npm install
 
       - name: Install playground dependencies
         run: |
-          cd playground && npm ci || (rm -rf node_modules package-lock.json && npm install)
+          cd playground
+          rm -rf node_modules
+          npm install
 
       - name: Build integration
         run: npm run build

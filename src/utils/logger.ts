@@ -17,7 +17,9 @@ const LOG_LEVEL_MAP: Record<string, string> = {
 
 /**
  * Create Winston logger with custom format
+ * @deprecated Currently using Astro's logger instead. Reserved for future standalone use.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function createWinstonLogger(config: LoggingConfig): winston.Logger {
   const prefix = config.prefix || 'ai-coauthor';
   const level = LOG_LEVEL_MAP[config.level] || 'info';
