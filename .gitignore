@@ -27,4 +27,9 @@ docs-site/dist/
 docs-site/.local-doc-feedback.json
 docs-site/node_modules/
 
+# CodeQL database and results
+codeql-db/
+codeql-results.sarif
+codeql-summary.csv
+
 local-backlog/

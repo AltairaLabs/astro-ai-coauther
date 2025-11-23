@@ -15,9 +15,10 @@ export class Logger {
     const astroLogger = getAstroLogger();
     if (astroLogger) {
       // Include meta in the message if present, but sanitize sensitive data
+      const sanitizedMessage = this.sanitizeString(message);
       const fullMessage = meta.length > 0 
-        ? `[${component}] ${message} ${meta.map(m => m instanceof Error ? m.message : this.sanitize(m)).join(' ')}`
-        : `[${component}] ${message}`;
+        ? `[${component}] ${sanitizedMessage} ${meta.map(m => m instanceof Error ? this.sanitizeString(m.message) : this.sanitize(m)).join(' ')}`
+        : `[${component}] ${sanitizedMessage}`;
       astroLogger.error(fullMessage);
       // Also log stack trace for errors
       meta.forEach(m => {
@@ -31,6 +32,10 @@ export class Logger {
   }
 
   private sanitize(data: any): string {
+    if (typeof data === 'string') {
+      // Sanitize string data that might contain sensitive information
+      return this.sanitizeString(data);
+    }
     if (typeof data !== 'object' || data === null) {
       return String(data);
     }
@@ -45,12 +50,22 @@ export class Logger {
     return JSON.stringify(sanitized);
   }
 
+  private sanitizeString(str: string): string {
+    // Redact potential API keys and tokens in strings
+    return str
+      .replaceAll(/sk-[a-zA-Z0-9]{20,}/g, '[REDACTED-API-KEY]')
+      .replaceAll(/api[_-]?key["']?\s*[:=]\s*["']?[a-zA-Z0-9]{20,}/gi, 'apiKey: [REDACTED]')
+      .replaceAll(/token["']?\s*[:=]\s*["']?[a-zA-Z0-9]{20,}/gi, 'token: [REDACTED]')
+      .replaceAll(/password["']?\s*[:=]\s*["']?[^\s"',}]{6,}/gi, 'password: [REDACTED]');
+  }
+
   warn(component: string, message: string, ...meta: any[]): void {
     const astroLogger = getAstroLogger();
     if (astroLogger) {
+      const sanitizedMessage = this.sanitizeString(message);
       const fullMessage = meta.length > 0 
-        ? `[${component}] ${message} ${meta.map(m => this.sanitize(m)).join(' ')}`
-        : `[${component}] ${message}`;
+        ? `[${component}] ${sanitizedMessage} ${meta.map(m => this.sanitize(m)).join(' ')}`
+        : `[${component}] ${sanitizedMessage}`;
       astroLogger.warn(fullMessage);
     } else {
       console.warn(`[ai-coauthor:${component}]`, message, ...meta);
@@ -60,9 +75,10 @@ export class Logger {
   info(component: string, message: string, ...meta: any[]): void {
     const astroLogger = getAstroLogger();
     if (astroLogger) {
+      const sanitizedMessage = this.sanitizeString(message);
       const fullMessage = meta.length > 0 
-        ? `[${component}] ${message} ${meta.map(m => this.sanitize(m)).join(' ')}`
-        : `[${component}] ${message}`;
+        ? `[${component}] ${sanitizedMessage} ${meta.map(m => this.sanitize(m)).join(' ')}`
+        : `[${component}] ${sanitizedMessage}`;
       astroLogger.info(fullMessage);
     } else {
       console.log(`[ai-coauthor:${component}]`, message, ...meta);
@@ -72,9 +88,10 @@ export class Logger {
   debug(component: string, message: string, ...meta: any[]): void {
     const astroLogger = getAstroLogger();
     if (astroLogger) {
+      const sanitizedMessage = this.sanitizeString(message);
       const fullMessage = meta.length > 0 
-        ? `[${component}] ${message} ${meta.map(m => this.sanitize(m)).join(' ')}`
-        : `[${component}] ${message}`;
+        ? `[${component}] ${sanitizedMessage} ${meta.map(m => this.sanitize(m)).join(' ')}`
+        : `[${component}] ${sanitizedMessage}`;
       // Astro logger might not have debug - use info instead
       if (typeof astroLogger.debug === 'function') {
         astroLogger.debug(fullMessage);

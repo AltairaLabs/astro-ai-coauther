@@ -31,7 +31,7 @@ export class OpenAIAgenticProvider implements LLMProvider {
     this.config = config;
     this.projectRoot = projectRoot;
     
-    logger.debug('llm-agentic', `Initializing OpenAI provider - API key: ${config.apiKey ? 'present (length: ' + config.apiKey.length + ')' : 'missing'}`);
+    logger.debug('llm-agentic', `Initializing OpenAI provider - API key: ${config.apiKey ? 'present' : 'missing'}`);
 
     // Initialize LangChain ChatOpenAI
     this.model = new ChatOpenAI({
@@ -68,7 +68,7 @@ export class OpenAIAgenticProvider implements LLMProvider {
   async isAvailable(): Promise<boolean> {
     try {
       const hasKey = !!this.config.apiKey && this.config.apiKey.length > 0;
-      logger.debug('llm-agentic', `API key check: ${hasKey ? 'present' : 'missing'} (length: ${this.config.apiKey?.length || 0})`);
+      logger.debug('llm-agentic', `API key check: ${hasKey ? 'present' : 'missing'}`);
       return hasKey;
     } catch (error) {
       logger.error('llm-agentic', 'Error checking availability:', error);
