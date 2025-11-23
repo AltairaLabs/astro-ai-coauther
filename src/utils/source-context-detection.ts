@@ -139,13 +139,18 @@ async function tryLLMDetection(
     return null;
   }
   
-  logger.info('source-detection', `Attempting LLM-powered detection with ${llmProvider.type}`);
+  // Check if LLM provider is available (has API key) before attempting
   const llmAvailable = await isLLMAvailable(llmProvider, projectRoot);
   
-  if (llmAvailable) {
-    logger.debug('source-detection', `LLM provider ${llmProvider.type} is available`);
-    
-    try {
+  if (!llmAvailable) {
+    logger.info('source-detection', `LLM provider ${llmProvider.type} not available (missing API key), using fallback`);
+    return null;
+  }
+  
+  logger.info('source-detection', `Attempting LLM-powered detection with ${llmProvider.type}`);
+  logger.debug('source-detection', `LLM provider ${llmProvider.type} is available`);
+  
+  try {
       const provider = createLLMProvider(llmProvider, projectRoot);
       logger.debug('source-detection', 'LLM provider created successfully');
       
@@ -182,9 +187,6 @@ async function tryLLMDetection(
         logger.info('source-detection', 'Falling back to rule-based detection');
       }
     }
-  } else {
-    logger.warn('source-detection', `LLM provider ${llmProvider.type} not available (check API key)`);
-  }
   
   return null;
 }

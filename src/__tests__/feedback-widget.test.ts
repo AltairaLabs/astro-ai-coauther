@@ -443,6 +443,86 @@ describe('Feedback Widget', () => {
     dom2.window.close();
   });
 
+  describe('Error Handling', () => {
+    it('should handle loadCurrentFrontmatter fetch errors gracefully', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
+      
+      // Open panel to trigger loadCurrentFrontmatter
+      const toggleBtn = document.getElementById('ai-coauthor-toggle');
+      toggleBtn?.click();
+      
+      await Promise.resolve();
+      await Promise.resolve();
+      
+      // Should show error message in frontmatter content
+      const frontmatterContent = document.getElementById('frontmatter-content');
+      expect(frontmatterContent?.textContent).toContain('Failed to load');
+      expect(frontmatterContent?.style.color).toBe('rgb(220, 38, 38)');
+    });
+    
+    it('should handle non-ok response in loadCurrentFrontmatter', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as Response);
+      
+      // Open panel to trigger loadCurrentFrontmatter
+      const toggleBtn = document.getElementById('ai-coauthor-toggle');
+      toggleBtn?.click();
+      
+      await Promise.resolve();
+      await Promise.resolve();
+      
+      // Should show "No frontmatter found"
+      const frontmatterContent = document.getElementById('frontmatter-content');
+      expect(frontmatterContent?.textContent).toContain('No frontmatter found');
+      expect(frontmatterContent?.style.fontStyle).toBe('italic');
+    });
+    
+    it('should handle missing sourceContext in response', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+      
+      // Open panel
+      const toggleBtn = document.getElementById('ai-coauthor-toggle');
+      toggleBtn?.click();
+      
+      await Promise.resolve();
+      await Promise.resolve();
+      
+      // Should show message about no context
+      const frontmatterContent = document.getElementById('frontmatter-content');
+      expect(frontmatterContent?.textContent).toContain('No source context mapped yet');
+    });
+    
+    it('should display empty arrays in frontmatter', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          sourceContext: {
+            files: [],
+            folders: [],
+            confidence: 'low',
+          },
+        }),
+      } as Response);
+      
+      // Open panel
+      const toggleBtn = document.getElementById('ai-coauthor-toggle');
+      toggleBtn?.click();
+      
+      await Promise.resolve();
+      await Promise.resolve();
+      
+      // Should display empty with confidence
+      const frontmatterContent = document.getElementById('frontmatter-content');
+      expect(frontmatterContent?.innerHTML).toContain('none');
+      expect(frontmatterContent?.innerHTML).toContain('Confidence: low');
+    });
+  });
+
   describe('Source Context Detection', () => {
     it('should send detection request when detect button clicked', async () => {
       const mockResponse = {

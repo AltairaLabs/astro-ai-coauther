@@ -274,4 +274,72 @@ Content`;
       await expect(removeAICoauthorData(testFile, 'aiCoauthor')).resolves.not.toThrow();
     });
   });
+
+  describe('readAICoauthorData', () => {
+    it('should read all AI Coauthor data from frontmatter', async () => {
+      const testFile = path.join(tempDir, 'ai-data.md');
+      const content = `---
+title: Test
+aiCoauthor:
+  sourceContext:
+    files: [test.ts]
+    folders: []
+  relatedPages: [/page1, /page2]
+  custom: value
+---
+
+Content`;
+      await fs.writeFile(testFile, content);
+
+      const result = await (await import('../utils/frontmatter')).readAICoauthorData(testFile, 'aiCoauthor');
+
+      expect(result).toBeDefined();
+      expect(result.sourceContext).toBeDefined();
+      expect(result.sourceContext!.files).toEqual(['test.ts']);
+      expect(result.relatedPages).toEqual(['/page1', '/page2']);
+      expect(result.custom).toBe('value');
+    });
+
+    it('should return empty object when no AI Coauthor data', async () => {
+      const testFile = path.join(tempDir, 'no-ai-data.md');
+      const content = `---
+title: Test
+---
+
+Content`;
+      await fs.writeFile(testFile, content);
+
+      const result = await (await import('../utils/frontmatter')).readAICoauthorData(testFile, 'aiCoauthor');
+
+      expect(result).toEqual({});
+    });
+  });
+
+  describe('updateRelatedPages', () => {
+    it('should add related pages to frontmatter', async () => {
+      const testFile = path.join(tempDir, 'related.md');
+      const content = `---
+title: Test
+---
+
+Content`;
+      await fs.writeFile(testFile, content);
+
+      const relatedPages = ['/page1', '/page2', '/page3'];
+      await (await import('../utils/frontmatter')).updateRelatedPages(testFile, relatedPages, 'aiCoauthor');
+
+      const page = await readDocumentationPage(testFile);
+      expect(page.frontmatter.aiCoauthor).toBeDefined();
+      expect(page.frontmatter.aiCoauthor.relatedPages).toEqual(relatedPages);
+    });
+
+    it('should throw error for unsupported file types', async () => {
+      const testFile = path.join(tempDir, 'test.astro');
+      await fs.writeFile(testFile, 'content');
+
+      await expect(
+        (await import('../utils/frontmatter')).updateRelatedPages(testFile, ['/page1'], 'aiCoauthor')
+      ).rejects.toThrow('File type not supported');
+    });
+  });
 });

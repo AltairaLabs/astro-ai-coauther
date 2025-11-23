@@ -10,7 +10,11 @@ describe('Logger', () => {
 
   beforeEach(() => {
     // Clear global state
+    delete (globalThis as any).__ASTRO_COAUTHOR__;
     (globalThis as any).__ASTRO_COAUTHOR__ = {};
+    
+    // Clear any cached logger
+    vi.resetModules();
     
     // Spy on console methods
     consoleSpies = {
@@ -125,4 +129,5 @@ describe('Logger', () => {
       expect(logger1).toBe(logger2);
     });
   });
+
 });
