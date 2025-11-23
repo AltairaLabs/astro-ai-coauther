@@ -1,10 +1,19 @@
 import type { APIContext } from 'astro';
+import { getLogger } from '../utils/logger.js';
+
+const logger = getLogger();
 
 // Force this endpoint to be server-rendered, not prerendered
 export const prerender = false;
 
 export async function POST({ request }: APIContext): Promise<Response> {
-  const storage = globalThis.__ASTRO_COAUTHOR__.storage;
+  const storage = globalThis.__ASTRO_COAUTHOR__?.storage;
+  if (!storage) {
+    return new Response(JSON.stringify({ error: 'Storage not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const contentType = request.headers.get('content-type') || '';
@@ -17,7 +26,7 @@ export async function POST({ request }: APIContext): Promise<Response> {
         try {
           body = JSON.parse(rawBody);
         } catch (parseError: any) {
-          console.error('[astro-ai-coauthor] JSON parse error:', parseError?.message);
+          logger.error('feedback', 'Invalid JSON in request body', parseError);
           return new Response(
             JSON.stringify({ error: 'Invalid JSON payload' }),
             { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -61,7 +70,7 @@ export async function POST({ request }: APIContext): Promise<Response> {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('[astro-ai-coauthor] Error saving feedback:', error?.message);
+    logger.error('feedback', 'Failed to save feedback', error);
     return new Response(
       JSON.stringify({ error: 'Failed to save feedback' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -70,7 +79,13 @@ export async function POST({ request }: APIContext): Promise<Response> {
 }
 
 export async function GET(): Promise<Response> {
-  const storage = globalThis.__ASTRO_COAUTHOR__.storage;
+  const storage = globalThis.__ASTRO_COAUTHOR__?.storage;
+  if (!storage) {
+    return new Response(JSON.stringify({ error: 'Storage not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const entries = await storage.loadAll();
@@ -84,7 +99,7 @@ export async function GET(): Promise<Response> {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('[astro-ai-coauthor] Error retrieving feedback:', error?.message);
+    logger.error('feedback', 'Failed to retrieve feedback', error);
     return new Response(
       JSON.stringify({ error: 'Failed to retrieve feedback' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

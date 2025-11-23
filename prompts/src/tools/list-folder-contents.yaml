@@ -1,0 +1,46 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Tool
+metadata:
+  name: list_folder_contents
+spec:
+  name: list_folder_contents
+  description: "List the immediate contents of a specific folder"
+  mode: mock
+  
+  input_schema:
+    type: object
+    properties:
+      path:
+        type: string
+        description: "Path to the folder (relative to project root)"
+      include_files:
+        type: boolean
+        description: "Include files in the output"
+        default: true
+      include_folders:
+        type: boolean
+        description: "Include subfolders in the output"
+        default: true
+    required: ["path"]
+  
+  output_schema:
+    type: object
+    properties:
+      files:
+        type: array
+        items:
+          type: string
+        description: "Files in the folder"
+      folders:
+        type: array
+        items:
+          type: string
+        description: "Subfolders in the folder"
+    required: ["files", "folders"]
+  
+  mock_result:
+    files:
+      - "feedback-widget.ts"
+      - "feedback-widget-core.ts"
+    folders:
+      - "templates"

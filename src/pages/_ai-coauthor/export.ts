@@ -1,12 +1,21 @@
 import type { APIContext } from 'astro';
 import { exportFeedback, generateAnalytics, generateTasks } from '../../utils/export.js';
 import type { ExportOptions } from '../../utils/export.js';
+import { getLogger } from '../../utils/logger.js';
+
+const logger = getLogger();
 
 // Force this endpoint to be server-rendered
 export const prerender = false;
 
 export async function GET({ url }: APIContext): Promise<Response> {
-  const storage = (globalThis as any).__ASTRO_COAUTHOR__.storage;
+  const storage = globalThis.__ASTRO_COAUTHOR__?.storage;
+  if (!storage) {
+    return new Response(JSON.stringify({ error: 'Storage not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const searchParams = url.searchParams;
@@ -32,7 +41,7 @@ export async function GET({ url }: APIContext): Promise<Response> {
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('[astro-ai-coauthor] Export error:', error?.message);
+    logger.error('export', 'Failed to export feedback', error);
     return new Response(
       JSON.stringify({ error: 'Failed to export feedback' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

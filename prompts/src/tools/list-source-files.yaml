@@ -1,0 +1,44 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Tool
+metadata:
+  name: list_source_files
+spec:
+  name: list_source_files
+  description: "List all source files in the project, optionally filtered by glob pattern"
+  mode: mock
+  
+  input_schema:
+    type: object
+    properties:
+      pattern:
+        type: string
+        description: "Optional glob pattern to filter files (e.g., '**/*.ts', 'src/**')"
+        default: "**/*"
+    required: []
+  
+  output_schema:
+    type: object
+    properties:
+      files:
+        type: array
+        items:
+          type: string
+        description: "Array of file paths relative to project root"
+      count:
+        type: integer
+        description: "Total number of files found"
+    required: ["files", "count"]
+  
+  mock_result:
+    files:
+      - "src/index.ts"
+      - "src/types.ts"
+      - "src/task-manager.ts"
+      - "src/storage/FileStorageAdapter.ts"
+      - "src/storage/FeedbackStorageAdapter.ts"
+      - "src/client/feedback-widget.ts"
+      - "src/client/feedback-widget-core.ts"
+      - "src/client/templates/feedback-modal.ts"
+      - "src/utils/llm/agentic-detector.ts"
+      - "src/utils/source-context-detection.ts"
+    count: 10

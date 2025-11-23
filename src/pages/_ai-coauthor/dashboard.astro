@@ -38,7 +38,7 @@ try {
   const tasksData = await tasksResponse.json();
   tasks = tasksData.tasks || [];
 } catch (error) {
-  console.error('🟣 [DASHBOARD] Failed to load data:', error);
+  // Failed to load data, use defaults
 }
 
 // Group feedback by page
@@ -202,6 +202,31 @@ const feedbackByPage = feedbackData.entries?.reduce((acc: any, entry: any) => {
         <div class="stat-label">Categories</div>
         <div class="stat-value">{Object.keys(analytics.categoryBreakdown).length}</div>
       </div>
+    </div>
+
+    <!-- Source Context Detection -->
+    <div style="background: #f0fdf4; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 2px solid #86efac;">
+      <h2 style="margin: 0 0 0.5rem 0; font-size: 1.25rem; color: #1a202c;">🤖 AI Source Context Detection</h2>
+      <p style="margin: 0 0 1rem 0; font-size: 0.875rem; color: #6b7280;">
+        Automatically detect which source files are documented by each page using LLM-powered analysis.
+      </p>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <button id="detect-all-btn" onclick="detectAllContexts()" style="
+          padding: 0.75rem 1.5rem;
+          background: #10B981;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+        ">
+          🔍 Detect All Pages
+        </button>
+        <div id="detect-all-status" style="display: none; font-size: 0.875rem; color: #6b7280;"></div>
+      </div>
+      <div id="active-jobs" style="margin-top: 1rem; display: none;"></div>
+      <div id="detect-all-results" style="margin-top: 1rem; display: none;"></div>
     </div>
 
     <!-- Export Controls -->
@@ -430,6 +455,317 @@ const feedbackByPage = feedbackData.entries?.reduce((acc: any, entry: any) => {
     function exportData(format) {
       const url = '/_ai-coauthor/export?action=export&format=' + format;
       window.location.href = url;
+    }
+
+    let currentJobId = null;
+    let pollInterval = null;
+
+    // Check for active jobs on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      // First, check if we had an active job in sessionStorage
+      const storedJobId = sessionStorage.getItem('activeDetectionJob');
+      
+      if (storedJobId) {
+        // Try to resume the stored job
+        try {
+          const response = await fetch(`/_ai-coauthor/job-status?jobId=${storedJobId}`);
+          if (response.ok) {
+            const job = await response.json();
+            if (job.status === 'running' || job.status === 'pending') {
+              // Job still active, resume it
+              resumeJob(storedJobId);
+              return;
+            }
+          }
+          // Job not found or completed, clear storage
+          sessionStorage.removeItem('activeDetectionJob');
+        } catch (error) {
+          sessionStorage.removeItem('activeDetectionJob');
+        }
+      }
+      
+      // Check for any active jobs
+      await checkActiveJobs();
+    });
+
+    async function checkActiveJobs() {
+      try {
+        const response = await fetch('/_ai-coauthor/job-status');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const activeJobs = data.jobs.filter(j => 
+          j.status === 'pending' || j.status === 'running'
+        );
+        
+        if (activeJobs.length > 0) {
+          displayActiveJobs(activeJobs);
+          
+          // Auto-resume if we don't have a current job
+          if (!currentJobId) {
+            const latestJob = activeJobs[0];
+            currentJobId = latestJob.id;
+            
+            const btn = document.getElementById('detect-all-btn');
+            const status = document.getElementById('detect-all-status');
+            
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = '🔍 Detecting...';
+            }
+            
+            if (status) {
+              status.style.display = 'block';
+            }
+            
+            pollJobStatus();
+          }
+        }
+      } catch (error) {
+        // Failed to check active jobs
+      }
+    }
+
+    function displayActiveJobs(jobs) {
+      const container = document.getElementById('active-jobs');
+      if (!container || jobs.length === 0) return;
+      
+      container.style.display = 'block';
+      container.innerHTML = `
+        <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 6px; padding: 1rem; margin-bottom: 0.5rem;">
+          <div style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">
+            ⏳ Active Detection Jobs
+          </div>
+          ${jobs.map(job => {
+            const percent = Math.round((job.progress.completed / job.progress.total) * 100);
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-top: 1px solid #fbbf24;">
+                <div style="font-size: 0.875rem; color: #78350f;">
+                  Job ${job.id.substring(4, 12)}... - ${job.progress.completed}/${job.progress.total} pages (${percent}%)
+                  ${job.status === 'running' ? '🔄' : '⏸️'}
+                </div>
+                <button 
+                  onclick="resumeJob('${job.id}')" 
+                  style="
+                    padding: 0.375rem 0.75rem;
+                    background: #f59e0b;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    cursor: pointer;
+                  "
+                >
+                  ${job.id === currentJobId ? '👁️ Watching' : '👁️ Watch'}
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function resumeJob(jobId) {
+      // Stop current polling if any
+      if (pollInterval) {
+        clearTimeout(pollInterval);
+      }
+      
+      currentJobId = jobId;
+      
+      const btn = document.getElementById('detect-all-btn');
+      const status = document.getElementById('detect-all-status');
+      
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '🔍 Detecting...';
+      }
+      
+      if (status) {
+        status.style.display = 'block';
+        status.textContent = 'Resuming job...';
+        status.style.color = '#6b7280';
+      }
+      
+      pollJobStatus();
+    }
+
+    async function detectAllContexts() {
+      const btn = document.getElementById('detect-all-btn');
+      const status = document.getElementById('detect-all-status');
+      const results = document.getElementById('detect-all-results');
+      
+      if (!btn || !status || !results) return;
+      
+      // Update UI
+      btn.disabled = true;
+      btn.textContent = '🔍 Starting...';
+      status.style.display = 'block';
+      status.textContent = 'Starting AI analysis...';
+      status.style.color = '#6b7280';
+      results.style.display = 'none';
+      
+      try {
+        // Start the job
+        const response = await fetch('/_ai-coauthor/detect-all-contexts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to start detection: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        currentJobId = data.jobId;
+        
+        // Store in sessionStorage for persistence across navigation
+        sessionStorage.setItem('activeDetectionJob', currentJobId);
+        
+        // Start polling for status
+        pollJobStatus();
+        
+      } catch (error) {
+        status.textContent = `❌ Failed to start: ${error.message}`;
+        status.style.color = '#DC2626';
+        btn.disabled = false;
+        btn.textContent = '🔍 Detect All Pages';
+      }
+    }
+
+    async function pollJobStatus() {
+      if (!currentJobId) return;
+      
+      const btn = document.getElementById('detect-all-btn');
+      const status = document.getElementById('detect-all-status');
+      const results = document.getElementById('detect-all-results');
+      
+      if (!status || !results || !btn) return;
+      
+      try {
+        const response = await fetch(`/_ai-coauthor/job-status?jobId=${currentJobId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch job status');
+        }
+        
+        const job = await response.json();
+        
+        // Store current job ID in sessionStorage for recovery
+        sessionStorage.setItem('activeDetectionJob', currentJobId);
+        
+        // Update progress
+        if (job.status === 'running' || job.status === 'pending') {
+          const percent = Math.round((job.progress.completed / job.progress.total) * 100);
+          status.textContent = `🔍 Analyzing... ${job.progress.completed}/${job.progress.total} pages (${percent}%)`;
+          status.style.color = '#6b7280';
+          
+          if (job.progress.current) {
+            status.textContent += ` - ${job.progress.current}`;
+          }
+          
+          // Refresh active jobs list
+          await checkActiveJobs();
+          
+          // Continue polling
+          pollInterval = setTimeout(pollJobStatus, 1000);
+        } 
+        else if (job.status === 'completed') {
+          // Job finished
+          status.textContent = `✅ Completed! Analyzed ${job.progress.total} pages`;
+          status.style.color = '#059669';
+          
+          // Display results
+          displayJobResults(job);
+          
+          // Clear stored job
+          sessionStorage.removeItem('activeDetectionJob');
+          
+          // Hide active jobs section
+          const activeJobsContainer = document.getElementById('active-jobs');
+          if (activeJobsContainer) {
+            activeJobsContainer.style.display = 'none';
+          }
+          
+          btn.disabled = false;
+          btn.textContent = '🔍 Detect All Pages';
+          currentJobId = null;
+        } 
+        else if (job.status === 'failed') {
+          status.textContent = `❌ Failed: ${job.error || 'Unknown error'}`;
+          status.style.color = '#DC2626';
+          
+          // Clear stored job
+          sessionStorage.removeItem('activeDetectionJob');
+          
+          btn.disabled = false;
+          btn.textContent = '🔍 Detect All Pages';
+          currentJobId = null;
+          
+          // Refresh active jobs list
+          await checkActiveJobs();
+        }
+        
+      } catch (error) {
+        status.textContent = `❌ Error checking status: ${error.message}`;
+        status.style.color = '#DC2626';
+        
+        btn.disabled = false;
+        btn.textContent = '🔍 Detect All Pages';
+        currentJobId = null;
+        
+        // Clear stored job on error
+        sessionStorage.removeItem('activeDetectionJob');
+      }
+    }
+
+    function displayJobResults(job) {
+      const results = document.getElementById('detect-all-results');
+      if (!results || !job.results || job.results.length === 0) return;
+      
+      results.style.display = 'block';
+      results.innerHTML = `
+        <div style="background: white; border-radius: 8px; padding: 1rem; max-height: 400px; overflow-y: auto;">
+          <h3 style="margin: 0 0 1rem 0; font-size: 1rem; color: #1a202c;">Detection Results</h3>
+          ${job.results.map(r => {
+            const confidenceColors = {
+              high: '#10B981',
+              medium: '#F59E0B',
+              low: '#EF4444'
+            };
+            const color = confidenceColors[r.confidence] || '#6b7280';
+            
+            return `
+              <div style="border-bottom: 1px solid #e5e7eb; padding: 0.75rem 0; font-size: 0.875rem;">
+                <div style="font-weight: 600; color: #1a202c; margin-bottom: 0.25rem;">
+                  ${r.docPath}
+                  <span style="
+                    display: inline-block;
+                    padding: 2px 8px;
+                    background: ${color}20;
+                    color: ${color};
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    margin-left: 0.5rem;
+                  ">
+                    ${r.confidence.toUpperCase()}
+                  </span>
+                </div>
+                <div style="color: #6b7280; font-size: 0.75rem;">
+                  Files: ${r.files.length > 0 ? r.files.slice(0, 3).join(', ') : 'none'}
+                  ${r.files.length > 3 ? ` (+${r.files.length - 3} more)` : ''}
+                </div>
+                ${r.folders.length > 0 ? `
+                  <div style="color: #6b7280; font-size: 0.75rem;">
+                    Folders: ${r.folders.join(', ')}
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
     }
   </script>
 </body>

@@ -11,6 +11,7 @@
   "files": [
     "dist",
     "src",
+    "prompts",
     "README.md",
     "LICENSE"
   ],
@@ -19,6 +20,10 @@
     "dev": "tsc --watch",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
+    "codeql:create-db": "rm -rf codeql-db && codeql database create codeql-db --language=javascript --source-root=.",
+    "codeql:analyze": "codeql database analyze codeql-db --format=sarif-latest --output=codeql-results.sarif codeql/javascript-queries:codeql-suites/javascript-security-and-quality.qls",
+    "codeql:summary": "codeql database interpret-results codeql-db --format=csv --output=codeql-summary.csv && cat codeql-summary.csv",
+    "codeql": "npm run codeql:create-db && npm run codeql:analyze && npm run codeql:summary",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -30,6 +35,9 @@
     "docs:dev": "cd docs && npm run dev",
     "docs:build": "cd docs && npm run build",
     "docs:preview": "cd docs && npm run preview",
+    "prompt:test": "cd prompts/src && promptarena run arena.yaml",
+    "prompt:compile": "cd prompts/src && ../../../promptkit/bin/packc compile --config arena.yaml --output ../dist/source-context-detection.json --id detect",
+    "prompt:inspect": "cd prompts/src && promptarena config-inspect arena.yaml",
     "prepublishOnly": "npm run build && npm run lint && npm run test && npm run test:playground"
   },
   "keywords": [
@@ -54,19 +62,27 @@
     "astro": "^4.0.0"
   },
   "devDependencies": {
+    "@altairalabs/promptarena": "^1.1.1",
     "@babel/core": "^7.28.5",
+    "@babel/generator": "^7.28.5",
+    "@babel/parser": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
+    "@eslint/js": "^9.39.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@playwright/test": "^1.56.1",
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^20.19.25",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript-eslint/eslint-plugin": "^8.47.0",
+    "@typescript-eslint/parser": "^8.47.0",
     "@vitest/coverage-v8": "^4.0.10",
     "astro": "^4.0.0",
     "babel-plugin-istanbul": "^7.0.1",
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
     "happy-dom": "^20.0.10",
     "istanbul-lib-coverage": "^3.2.2",
     "jsdom": "^27.2.0",
@@ -75,8 +91,16 @@
     "vitest": "^4.0.10"
   },
   "dependencies": {
+    "@langchain/anthropic": "^1.1.1",
+    "@langchain/core": "^1.0.6",
+    "@langchain/langgraph": "^1.0.2",
+    "@langchain/openai": "^1.1.2",
+    "@promptpack/langchain": "^0.1.0",
     "globby": "^16.0.0",
     "gray-matter": "^4.0.3",
-    "ignore": "^7.0.5"
+    "ignore": "^7.0.5",
+    "langchain": "^1.0.6",
+    "tmp": "^0.2.5",
+    "winston": "^3.18.3"
   }
 }

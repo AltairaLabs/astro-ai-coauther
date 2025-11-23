@@ -15,8 +15,6 @@ import { FeedbackWidget } from './feedback-widget-core';
     return;
   }
 
-  console.log('[astro-ai-coauthor] Initializing feedback widget');
-
-  const widget = new FeedbackWidget(document, window);
+  const widget = new FeedbackWidget(document, globalThis as Window & typeof globalThis);
   widget.initialize();
 })();

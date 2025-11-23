@@ -1,0 +1,17 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Provider
+metadata:
+  name: openai-gpt-4o
+spec:
+  type: openai
+  model: gpt-4o
+  base_url: https://api.openai.com/v1
+  include_raw_output: true
+  pricing:
+    input_per_1k: 0.0025    # $2.50 per 1M tokens = $0.0025 per 1K
+    output_per_1k: 0.01     # $10.00 per 1M tokens = $0.01 per 1K
+  defaults:
+    temperature: 0.1
+    max_tokens: 2000
+    top_p: 1.0
+    seed: 42

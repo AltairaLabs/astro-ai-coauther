@@ -1,0 +1,162 @@
+---
+title: 'API Reference'
+description: 'Complete API documentation for AI Coauthor integration'
+aiCoauthor:
+  sourceContext:
+    files:
+      - index.ts
+    folders: []
+    globs: []
+    exclude:
+      - '**/*.test.ts'
+      - '**/*.spec.ts'
+      - '**/node_modules/**'
+      - '**/dist/**'
+      - '**/.astro/**'
+    manual: false
+    confidence: 'high'
+    lastUpdated: '2025-11-23T14:15:21.399Z'
+---
+
+# API Reference
+
+Complete reference for the AI Coauthor integration API.
+
+## Integration API
+
+### `aiCoauthor(options)`
+
+The main integration function.
+
+**Parameters:**
+- `options` (object): Configuration options
+  - `storageAdapter`: Storage backend ('file' | 'memory' | custom)
+  - `feedbackEndpoint`: Custom feedback endpoint path
+  - `widget`: Widget configuration object
+
+**Returns:** Astro integration object
+
+**Example:**
+
+```javascript
+import aiCoauthor from 'astro-ai-coauthor';
+
+export default defineConfig({
+  integrations: [
+    aiCoauthor({
+      storageAdapter: 'file',
+      widget: { position: 'bottom-right' }
+    })
+  ]
+});
+```
+
+## Storage Adapter API
+
+### `FeedbackStorageAdapter`
+
+Interface for implementing custom storage backends.
+
+**Methods:**
+
+#### `saveFeedback(feedback: Feedback): Promise<void>`
+
+Save user feedback.
+
+**Parameters:**
+- `feedback`: Feedback object containing:
+  - `page`: Page URL
+  - `category`: Feedback category
+  - `rating`: Numeric rating
+  - `notes`: User notes (optional)
+  - `timestamp`: ISO timestamp
+
+#### `getFeedback(options?: QueryOptions): Promise<Feedback[]>`
+
+Retrieve stored feedback.
+
+**Parameters:**
+- `options`: Optional query filters
+  - `page`: Filter by page URL
+  - `category`: Filter by category
+  - `startDate`: Filter by start date
+  - `endDate`: Filter by end date
+
+**Returns:** Array of feedback entries
+
+## Source Context API
+
+### `detectSourceContext(docPath, content, rootDir): Promise<DetectionResult>`
+
+Detect source files relevant to a documentation page.
+
+**Parameters:**
+- `docPath` (string): Path to the documentation file
+- `content` (string): Page content
+- `rootDir` (string): Project root directory
+
+**Returns:** Detection result with:
+- `sourceContext`: Detected files and folders
+- `confidence`: 'high' | 'medium' | 'low'
+- `reasoning`: Array of explanation strings
+
+### `saveSourceContext(docPath, sourceContext): Promise<void>`
+
+Save source context mapping to file.
+
+**Parameters:**
+- `docPath` (string): Path to the documentation file
+- `sourceContext` (object): Source context to save
+  - `files`: Array of file paths
+  - `folders`: Array of folder paths
+  - `confidence`: Confidence level
+  - `lastUpdated`: ISO timestamp
+
+## Widget API
+
+### `FeedbackWidget`
+
+Client-side widget class.
+
+**Constructor:**
+
+```typescript
+const widget = new FeedbackWidget({
+  endpoint: '/_ai-coauthor/feedback',
+  position: 'bottom-right',
+  theme: 'auto'
+});
+```
+
+**Methods:**
+
+#### `show(): void`
+Show the feedback widget.
+
+#### `hide(): void`
+Hide the feedback widget.
+
+#### `submitFeedback(data: FeedbackData): Promise<void>`
+Submit feedback programmatically.
+
+## Type Definitions
+
+```typescript
+interface SourceContext {
+  files: string[];
+  folders: string[];
+  globs?: string[];
+  exclude?: string[];
+  manual?: boolean;
+  confidence: 'high' | 'medium' | 'low';
+  lastUpdated: string;
+}
+
+interface Feedback {
+  page: string;
+  category: string;
+  rating: number;
+  notes?: string;
+  timestamp: string;
+}
+```

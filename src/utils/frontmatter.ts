@@ -6,7 +6,9 @@
 import * as fs from 'node:fs/promises';
 import matter from 'gray-matter';
 import type { SourceContext, AICoauthorFrontmatter } from '../types';
+import { getLogger } from './logger.js';
 
+const logger = getLogger();
 const DEFAULT_NAMESPACE = 'aiCoauthor';
 
 /**
@@ -27,9 +29,7 @@ export async function readSourceContext(
     const aiData = data[namespace] as AICoauthorFrontmatter['aiCoauthor'];
     return aiData?.sourceContext ?? null;
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(`Failed to read source context from ${filePath}:`, error.message);
-    }
+    logger.error('frontmatter', `Failed to read source context from ${filePath}`, error);
     return null;
   }
 }
@@ -51,11 +51,17 @@ export async function readAICoauthorData(
     
     return (data[namespace] as AICoauthorFrontmatter['aiCoauthor']) ?? {};
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(`Failed to read AI Coauthor data from ${filePath}:`, error.message);
-    }
+    logger.error('frontmatter', `Failed to read AI Coauthor data from ${filePath}`, error);
     return {};
   }
+}
+
+/**
+ * Check if file type supports YAML frontmatter
+ */
+function supportsYAMLFrontmatter(filePath: string): boolean {
+  const ext = filePath.split('.').pop()?.toLowerCase();
+  return ext === 'md' || ext === 'mdx';
 }
 
 /**
@@ -70,6 +76,15 @@ export async function updateSourceContext(
   sourceContext: SourceContext,
   namespace: string = DEFAULT_NAMESPACE
 ): Promise<void> {
+  // Skip files that don't support YAML frontmatter (e.g., .astro files)
+  if (!supportsYAMLFrontmatter(filePath)) {
+    throw new Error(
+      `File type not supported: ${filePath}. ` +
+      `Only .md and .mdx files support YAML frontmatter. ` +
+      `.astro files use component scripts and cannot store frontmatter data.`
+    );
+  }
+
   try {
     const content = await fs.readFile(filePath, 'utf-8');
     const { data, content: body } = matter(content);
@@ -139,6 +154,13 @@ export async function updateRelatedPages(
   relatedPages: string[],
   namespace: string = DEFAULT_NAMESPACE
 ): Promise<void> {
+  // Skip files that don't support YAML frontmatter
+  if (!supportsYAMLFrontmatter(filePath)) {
+    throw new Error(
+      `File type not supported: ${filePath}. Only .md and .mdx files support YAML frontmatter.`
+    );
+  }
+
   try {
     const content = await fs.readFile(filePath, 'utf-8');
     const { data, content: body } = matter(content);
@@ -213,6 +235,35 @@ export async function hasAICoauthorData(
 }
 
 /**
+ * Extract YAML frontmatter from Astro files, handling JSDoc comments
+ * Astro frontmatter can contain JSDoc with JSON that breaks YAML parsing
+ * 
+ * @param content - File content
+ * @returns Content with JSDoc comments removed from frontmatter
+ */
+function sanitizeAstroFrontmatter(content: string): string {
+  // Match frontmatter delimiters
+  const regex = /^---\n([\s\S]*?)\n---/;
+  const frontmatterMatch = regex.exec(content);
+  if (!frontmatterMatch) return content;
+  
+  const frontmatter = frontmatterMatch[1];
+  
+  // Remove JSDoc comments that contain JSON
+  // Match /** ... */ blocks that contain @ai-coauthor or JSON
+  let sanitized = frontmatter.replaceAll(/\/\*\*[\s\S]*?\*\//g, '');
+  
+  // Clean up multiple blank lines left after removing comments
+  sanitized = sanitized.replaceAll(/\n{3,}/g, '\n\n');
+  
+  // Trim leading/trailing whitespace
+  sanitized = sanitized.trim();
+  
+  // Reconstruct with sanitized frontmatter
+  return `---\n${sanitized}\n---${content.slice(frontmatterMatch[0].length)}`;
+}
+
+/**
  * Read full documentation page with frontmatter
  * 
  * @param filePath - Path to documentation file
@@ -226,7 +277,13 @@ export async function readDocumentationPage(
   content: string;
   frontmatter: Record<string, any>;
 }> {
-  const content = await fs.readFile(filePath, 'utf-8');
+  let content = await fs.readFile(filePath, 'utf-8');
+  
+  // Sanitize Astro files to handle JSDoc comments in frontmatter
+  if (filePath.endsWith('.astro')) {
+    content = sanitizeAstroFrontmatter(content);
+  }
+  
   const { data, content: body } = matter(content);
   
   return {

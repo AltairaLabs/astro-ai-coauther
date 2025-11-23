@@ -37,6 +37,20 @@ export default defineConfig({
     contextOptions: {
       recordVideo: process.env.CI ? { dir: 'test-results/videos' } : undefined,
     },
+    
+    /* Navigation timeout */
+    navigationTimeout: 30000,
+    
+    /* Action timeout */
+    actionTimeout: 15000,
+  },
+  
+  /* Global test timeout - increased for LLM API calls */
+  timeout: 90000,
+  
+  /* Expect timeout */
+  expect: {
+    timeout: 30000,
   },
 
   /* Configure projects for major browsers */
@@ -49,7 +63,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'cd playground && npm run dev',
+    command: 'cd playground/docs && npm run dev',
     url: 'http://localhost:4321',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

@@ -1,0 +1,62 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Tool
+metadata:
+  name: read_file
+spec:
+  name: read_file
+  description: "Read the contents of a specific file, with optional preview mode"
+  mode: mock
+  
+  input_schema:
+    type: object
+    properties:
+      path:
+        type: string
+        description: "Path to the file to read (relative to project root). Returns full file contents."
+      preview:
+        type: boolean
+        description: "Optional: Set to true to return only the first 50 lines instead of the full file. Useful for large files."
+        default: false
+    required: ["path"]
+  
+  output_schema:
+    type: object
+    properties:
+      content:
+        type: string
+        description: "File contents"
+      lines:
+        type: integer
+        description: "Total number of lines"
+      truncated:
+        type: boolean
+        description: "Whether content was truncated"
+    required: ["content", "lines", "truncated"]
+  
+  mock_result:
+    content: |
+      export interface Task {
+        id: string;
+        title: string;
+        description?: string;
+        status: TaskStatus;
+        priority: TaskPriority;
+        createdAt: Date;
+        updatedAt: Date;
+      }
+      
+      export enum TaskStatus {
+        TODO = 'TODO',
+        IN_PROGRESS = 'IN_PROGRESS',
+        DONE = 'DONE',
+        CANCELLED = 'CANCELLED'
+      }
+      
+      export enum TaskPriority {
+        LOW = 'LOW',
+        MEDIUM = 'MEDIUM',
+        HIGH = 'HIGH',
+        URGENT = 'URGENT'
+      }
+    lines: 24
+    truncated: false

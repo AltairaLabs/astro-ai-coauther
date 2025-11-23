@@ -47,6 +47,10 @@ You can create custom adapters by implementing the FeedbackStorageAdapter interf
   });
 
   test('should detect source context and save to frontmatter', async ({ request }) => {
+    // Skip in CI - requires LLM API key which may not be available
+    test.skip(!!process.env.CI, 'Skipping LLM test in CI environment');
+    test.setTimeout(120000); // 2 minutes for LLM detection
+    
     // Read the original document
     const originalContent = await fs.readFile(docFilePath, 'utf-8');
     const originalParsed = matter(originalContent);
@@ -321,6 +325,10 @@ No source context here.
   });
 
   test('full workflow: detect, save, load, and verify', async ({ request }) => {
+    // Skip in CI - requires LLM API key which may not be available
+    test.skip(!!process.env.CI, 'Skipping LLM test in CI environment');
+    test.setTimeout(120000); // 2 minutes for LLM detection
+    
     // Step 1: Create a documentation page
     const docContent = `---
 title: File Tree Utilities

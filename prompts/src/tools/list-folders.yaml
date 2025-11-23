@@ -1,0 +1,43 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Tool
+metadata:
+  name: list_folders
+spec:
+  name: list_folders
+  description: "List all folders in the project structure"
+  mode: mock
+  
+  input_schema:
+    type: object
+    properties:
+      depth:
+        type: integer
+        description: "Maximum depth to traverse (default: unlimited)"
+        default: -1
+    required: []
+  
+  output_schema:
+    type: object
+    properties:
+      folders:
+        type: array
+        items:
+          type: string
+        description: "Array of folder paths relative to project root"
+      count:
+        type: integer
+        description: "Total number of folders found"
+    required: ["folders", "count"]
+  
+  mock_result:
+    folders:
+      - "src"
+      - "src/client"
+      - "src/client/templates"
+      - "src/storage"
+      - "src/types"
+      - "src/utils"
+      - "src/utils/llm"
+      - "docs"
+      - "examples"
+    count: 9

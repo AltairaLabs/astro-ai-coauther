@@ -8,6 +8,9 @@ import * as path from 'node:path';
 import { globby } from 'globby';
 import ignore from 'ignore';
 import type { FileTree } from '../types';
+import { getLogger } from './logger.js';
+
+const logger = getLogger();
 
 /**
  * Build a file tree structure for the project
@@ -76,7 +79,7 @@ async function buildTreeNode(
       children.push(child);
     } catch (error) {
       // Skip files/directories we can't read
-      console.warn(`Skipping ${entryPath}: ${error}`);
+      logger.warn('file-tree', `Skipping ${entryPath}`, error);
     }
   }
   
@@ -108,11 +111,8 @@ async function loadGitignorePatterns(rootPath: string): Promise<string[]> {
       .split('\n')
       .map(line => line.trim())
       .filter(line => line && !line.startsWith('#'));
-  } catch (error: unknown) {
-    // No .gitignore file or cannot read it
-    if (error instanceof Error) {
-      console.debug(`Could not read .gitignore: ${error.message}`);
-    }
+  } catch {
+    // No .gitignore file or cannot read it - silently ignore
     return [];
   }
 }
@@ -182,6 +182,25 @@ export function flattenFileTree(tree: FileTree): string[] {
   
   traverse(tree);
   return files;
+}
+
+/**
+ * Extract all folder paths from file tree
+ */
+export function extractFolders(tree: FileTree): string[] {
+  const folders: string[] = [];
+  
+  function traverse(node: FileTree) {
+    if (node.type === 'directory') {
+      folders.push(node.path);
+      if (node.children) {
+        node.children.forEach(traverse);
+      }
+    }
+  }
+  
+  traverse(tree);
+  return folders;
 }
 
 /**

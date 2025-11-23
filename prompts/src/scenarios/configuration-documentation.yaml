@@ -1,0 +1,94 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Scenario
+metadata:
+  name: configuration-documentation-scenarios
+spec:
+  task_type: code-analysis
+  description: "Test scenarios for configuration and setup documentation"
+
+  turns:
+    - role: user
+      content: |
+        Analyze this documentation and identify the relevant source files:
+        
+        Document Path: docs/configuration.md
+        Document Title: Configuration Guide
+        
+        # Configuration
+        
+        Configure the Astro AI Coauthor integration:
+        
+        ```javascript
+        import astroAICoauthor from 'astro-ai-coauthor';
+        
+        export default defineConfig({
+          integrations: [
+            astroAICoauthor({
+              enableFeedbackWidget: true,
+              feedbackStorePath: '.feedback.json',
+              llmProvider: { type: 'openai' },
+              sourceRoot: '../src'
+            })
+          ]
+        });
+        ```
+        
+        ## Storage Adapters
+        - FileStorageAdapter: Store feedback in JSON files
+        - FeedbackStorageAdapter: Abstract interface for custom storage
+
+      assertions:
+        - type: is_valid_json
+          params:
+            allow_wrapped: true
+            extract_json: true
+          message: "Response should be valid JSON"
+        
+        - type: json_schema
+          params:
+            schema:
+              type: object
+              required: ["files", "folders", "confidence", "reasoning"]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                folders:
+                  type: array
+                  items:
+                    type: string
+                confidence:
+                  type: string
+                  enum: ["high", "medium", "low"]
+                reasoning:
+                  type: array
+                  items:
+                    type: string
+            allow_wrapped: true
+            extract_json: true
+          message: "Response should match expected schema"
+        
+        - type: json_path
+          params:
+            jmespath_expression: "files[?@ == 'src/index.ts']"
+            min_results: 1
+            allow_wrapped: true
+            extract_json: true
+          message: "Should identify main integration entry point"
+        
+        - type: json_path
+          params:
+            jmespath_expression: "folders[?@ == 'src/storage']"
+            min_results: 1
+            allow_wrapped: true
+            extract_json: true
+          message: "Should identify storage folder"
+        
+        - type: json_path
+          params:
+            jmespath_expression: "contains(['high', 'medium', 'low'], confidence)"
+            expected: true
+            allow_wrapped: true
+            extract_json: true
+          message: "Should have valid confidence level"

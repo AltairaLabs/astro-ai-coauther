@@ -23,6 +23,19 @@
 
 import widgetTemplate from './templates/widget.html?raw';
 
+/**
+ * Escape HTML special characters to prevent XSS attacks
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+    .replaceAll('/', '&#x2F;');
+}
+
 export interface FeedbackData {
   pageUrl: string;
   timestamp: string;
@@ -83,6 +96,13 @@ export class FeedbackWidget {
     // Source context buttons
     sourceDetectBtn?.addEventListener('click', () => this.detectSourceContext());
     sourceSaveBtn?.addEventListener('click', () => this.saveSourceContext());
+    
+    // Load current frontmatter when panel opens
+    toggleBtn?.addEventListener('click', () => {
+      if (this.isWidgetVisible) {
+        this.loadCurrentFrontmatter();
+      }
+    });
   }
 
   private togglePanel(panel: HTMLElement | null): void {
@@ -92,7 +112,7 @@ export class FeedbackWidget {
     }
   }
 
-  private selectRating(btn: HTMLElement, allBtns: NodeListOf<Element>): void {
+  private selectRating(btn: HTMLElement, allBtns: NodeListOf<Element>): void { // eslint-disable-line no-undef
     for (const b of allBtns) {
       b.classList.remove('selected');
     }
@@ -120,8 +140,6 @@ export class FeedbackWidget {
         rating: this.feedbackData.rating,
       };
 
-      console.debug('[astro-ai-coauthor] Submitting feedback payload:', payload);
-
       const response = await fetch('/_ai-coauthor/feedback', {
         method: 'POST',
         headers: {
@@ -129,8 +147,6 @@ export class FeedbackWidget {
         },
         body: JSON.stringify(payload),
       });
-
-      console.debug('[astro-ai-coauthor] Feedback submission response:', response.status);
 
       if (response.ok) {
         if (statusEl) {
@@ -148,8 +164,8 @@ export class FeedbackWidget {
       } else {
         throw new Error('Failed to submit feedback');
       }
-    } catch (error) {
-      console.error('[astro-ai-coauthor] Error submitting feedback:', error);
+    } catch {
+      // Handle error silently - show user feedback only
       if (statusEl) {
         statusEl.textContent = '✗ Failed to submit';
         statusEl.style.color = '#DC2626';
@@ -197,6 +213,62 @@ export class FeedbackWidget {
 
   private currentSourceContext: any = null;
 
+  private async loadCurrentFrontmatter(): Promise<void> {
+    const frontmatterContent = this.document.getElementById('frontmatter-content');
+    if (!frontmatterContent) return;
+    
+    try {
+      const docPath = this.window?.location?.pathname || '';
+      const response = await fetch(`/_ai-coauthor/get-frontmatter?path=${encodeURIComponent(docPath)}`);
+      
+      if (!response.ok) {
+        frontmatterContent.textContent = 'No frontmatter found';
+        frontmatterContent.style.fontStyle = 'italic';
+        return;
+      }
+      
+      const data = await response.json();
+      const sourceContext = data.sourceContext;
+      
+      if (!sourceContext) {
+        frontmatterContent.textContent = 'No source context mapped yet';
+        frontmatterContent.style.fontStyle = 'italic';
+        return;
+      }
+      
+      // Display current mapping (even if empty arrays)
+      const hasFiles = sourceContext.files?.length > 0;
+      const hasFolders = sourceContext.folders?.length > 0;
+      
+      if (!hasFiles && !hasFolders) {
+        frontmatterContent.innerHTML = `
+          Files: <em>none</em><br>
+          Folders: <em>none</em><br>
+          <span style="color: #9CA3AF; font-size: 10px;">Confidence: ${sourceContext.confidence || 'unknown'}</span>
+        `;
+        frontmatterContent.style.fontStyle = 'normal';
+        return;
+      }
+      
+      const filesStr = hasFiles 
+        ? `Files: ${sourceContext.files.map((f: string) => escapeHtml(f)).join(', ')}` 
+        : 'Files: <em>none</em>';
+      const foldersStr = hasFolders 
+        ? `Folders: ${sourceContext.folders.map((f: string) => escapeHtml(f)).join(', ')}` 
+        : 'Folders: <em>none</em>';
+      
+      frontmatterContent.innerHTML = `
+        ${filesStr}<br>${foldersStr}
+      `.trim();
+      frontmatterContent.style.fontStyle = 'normal';
+      
+    } catch {
+      // Handle error silently - show user feedback only
+      frontmatterContent.textContent = 'Failed to load';
+      frontmatterContent.style.color = '#DC2626';
+    }
+  }
+
   private async detectSourceContext(): Promise<void> {
     const detectBtn = this.document.getElementById('source-detect-btn');
     const contentDiv = this.document.getElementById('source-context-content');
@@ -215,14 +287,8 @@ export class FeedbackWidget {
         docContent: pageContent.substring(0, 5000), // Limit content size
       };
       
-      console.log('[source-context] Sending detection request:', { 
-        docPath: payload.docPath, 
-        contentLength: payload.docContent.length 
-      });
-      
       // Parse JSON body the same way as feedback endpoint
       const rawBody = JSON.stringify(payload);
-      console.log('[source-context] Raw body length:', rawBody.length);
       
       const response = await fetch('/_ai-coauthor/detect-context', {
         method: 'POST',
@@ -232,24 +298,18 @@ export class FeedbackWidget {
         body: rawBody,
       });
       
-      console.log('[source-context] Response status:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[source-context] Error response:', errorText);
         throw new Error(`Detection failed: ${response.status}`);
       }
       
       this.currentSourceContext = await response.json();
-      console.log('[source-context] Detection result:', this.currentSourceContext);
       this.displaySourceContext(contentDiv, this.currentSourceContext);
       
       if (saveBtn) {
         (saveBtn as HTMLElement).style.display = 'block';
       }
     } catch (error) {
-      console.error('[source-context] Error:', error);
-      contentDiv.innerHTML = `<div style="color: #DC2626;">Failed to detect: ${error}</div>`;
+      contentDiv.innerHTML = `<div style="color: #DC2626;">Failed to detect: ${escapeHtml(String(error))}</div>`;
     } finally {
       detectBtn.textContent = '🔍 Detect';
       (detectBtn as HTMLButtonElement).disabled = false;
@@ -257,14 +317,10 @@ export class FeedbackWidget {
   }
 
   private displaySourceContext(container: HTMLElement, result: any): void {
-    console.log('[source-context] Displaying result:', result);
-    
     const files = result.sourceContext?.files || [];
     const folders = result.sourceContext?.folders || [];
     const confidence = result.confidence || 'low';
     const reasoning = result.reasoning || [];
-    
-    console.log('[source-context] Extracted data:', { files, folders, confidence, reasoning });
     
     const confidenceColors: Record<string, string> = {
       high: '#10B981',
@@ -272,7 +328,7 @@ export class FeedbackWidget {
       low: '#EF4444',
     };
     
-    const filesList = files.slice(0, 5).map((f: string) => `<li style="margin: 2px 0;">${f}</li>`).join('');
+    const filesList = files.slice(0, 5).map((f: string) => `<li style="margin: 2px 0;">${escapeHtml(f)}</li>`).join('');
     const moreFiles = files.length > 5 ? `<li style="color: #9CA3AF;">+${files.length - 5} more...</li>` : '';
     const filesSection = files.length > 0 ? `
       <div style="margin-bottom: 6px; font-weight: 500; color: #374151;">Files:</div>
@@ -284,7 +340,7 @@ export class FeedbackWidget {
     const foldersSection = folders.length > 0 ? `
       <div style="margin-bottom: 6px; font-weight: 500; color: #374151;">Folders:</div>
       <ul style="margin: 0 0 8px 0; padding-left: 20px; font-size: 11px; color: #6B7280;">
-        ${folders.map((f: string) => `<li style="margin: 2px 0;">${f}</li>`).join('')}
+        ${folders.map((f: string) => `<li style="margin: 2px 0;">${escapeHtml(f)}</li>`).join('')}
       </ul>
     ` : '';
     
@@ -292,7 +348,7 @@ export class FeedbackWidget {
       <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB;">
         <div style="margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 11px;">Reasoning:</div>
         <ul style="margin: 0; padding-left: 20px; font-size: 10px; color: #6B7280;">
-          ${reasoning.slice(0, 3).map((r: string) => `<li style="margin: 2px 0;">${r}</li>`).join('')}
+          ${reasoning.slice(0, 3).map((r: string) => `<li style="margin: 2px 0;">${escapeHtml(r)}</li>`).join('')}
         </ul>
       </div>
     ` : '';
@@ -355,8 +411,6 @@ export class FeedbackWidget {
         setTimeout(() => successMsg.remove(), 3000);
       }
     } catch (error) {
-      console.error('[source-context] Save error:', error);
-      
       if (contentDiv) {
         const errorMsg = this.document.createElement('div');
         errorMsg.style.cssText = 'color: #EF4444; font-weight: 500; margin-top: 8px; font-size: 11px;';

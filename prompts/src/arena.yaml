@@ -1,0 +1,51 @@
+apiVersion: promptkit.altairalabs.ai/v1alpha1
+kind: Arena
+metadata:
+  name: source-context-detection-arena
+  description: "Testing and evaluation arena for LLM-powered source code documentation mapping"
+spec:
+  prompt_configs:
+    - id: detect
+      file: prompts/source-context-detection.yaml
+
+  providers:
+    - file: providers/openai-gpt-4o.yaml
+    - file: providers/openai-gpt-4o-mini.yaml
+    # - file: providers/claude-3-5-sonnet.yaml  # Anthropic provider not yet supported
+    # - file: providers/gemini-2-0-flash.yaml  # Google provider not yet supported
+
+  scenarios:
+    - file: scenarios/api-documentation.yaml
+    - file: scenarios/component-documentation.yaml
+    - file: scenarios/configuration-documentation.yaml
+
+  tools:
+    - file: tools/list-source-files.yaml
+    - file: tools/list-folders.yaml
+    - file: tools/read-file.yaml
+    - file: tools/find-files.yaml
+    - file: tools/list-folder-contents.yaml
+
+  defaults:
+    temperature: 0.1
+    max_tokens: 2000
+    seed: 42
+    concurrency: 2
+    output:
+      dir: out
+      formats: ["json", "html"]
+      html:
+        file: evaluation-report.html
+    fail_on:
+      - provider_error
+
+  evaluation:
+    metrics:
+      - accuracy
+      - precision
+      - recall
+      - f1_score
+    comparisons:
+      - baseline: openai-gpt-4o
+        challengers:
+          - openai-gpt-4o-mini

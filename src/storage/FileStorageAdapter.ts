@@ -1,5 +1,8 @@
 import fs from 'node:fs/promises';
 import { FeedbackStorageAdapter, FeedbackStorageEntry } from './FeedbackStorageAdapter';
+import { getLogger } from '../utils/logger.js';
+
+const logger = getLogger();
 
 export class FileStorageAdapter implements FeedbackStorageAdapter {
   private readonly filePath: string;
@@ -24,7 +27,7 @@ export class FileStorageAdapter implements FeedbackStorageAdapter {
         return parsed;
       }
 
-      console.warn('[astro-ai-coauthor] Feedback store was not an array, resetting file');
+      logger.warn('storage', 'Feedback store was not an array, resetting file');
       return [];
     } catch (error: any) {
       if (error?.code === 'ENOENT') {
@@ -32,7 +35,7 @@ export class FileStorageAdapter implements FeedbackStorageAdapter {
         return [];
       }
 
-      console.error('[astro-ai-coauthor] Failed to read feedback store, resetting file:', error);
+      logger.error('storage', 'Failed to read feedback store, resetting file', error);
       return [];
     }
   }
