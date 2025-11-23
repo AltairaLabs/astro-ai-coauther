@@ -94,7 +94,7 @@ describe('Logger', () => {
       const logger = getLogger();
       logger.debug('test-component', 'Debug message');
 
-      expect(mockAstroLogger.info).toHaveBeenCalledWith('[test-component] 🔍 Debug message');
+      expect(mockAstroLogger.info).toHaveBeenCalledWith('🔍 [test-component] Debug message');
     });
 
     it('should support convenience methods', () => {

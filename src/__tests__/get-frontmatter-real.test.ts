@@ -32,14 +32,14 @@ describe('Get Frontmatter Endpoint - Real Files', () => {
     console.log('\n=== Testing tutorial.md ===');
     console.log('File path:', tutorialPath);
     
-    const exists = await fs.access(tutorialPath).then(() => true).catch(() => false);
-    console.log('File exists:', exists);
-    
-    if (!exists) {
-      throw new Error(`Tutorial file does not exist at ${tutorialPath}`);
+    // Read file content directly - combines existence check and read to avoid TOCTOU race
+    let content: string;
+    try {
+      content = await fs.readFile(tutorialPath, 'utf-8');
+      console.log('File exists: true');
+    } catch (error: any) {
+      throw new Error(`Tutorial file does not exist at ${tutorialPath}: ${error.message}`);
     }
-
-    const content = await fs.readFile(tutorialPath, 'utf-8');
     console.log('File preview:', content.substring(0, 300));
 
     // Create mock request - THIS IS THE ACTUAL ENDPOINT CALL

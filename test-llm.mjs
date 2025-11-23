@@ -8,18 +8,14 @@ import { dirname } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Read API key from playground config
-import { readFile } from 'node:fs/promises';
-const playgroundConfig = await readFile('./playground/docs/astro.config.mjs', 'utf-8');
-const apiKeyMatch = playgroundConfig.match(/OPENAI_API_KEY:\s*process\.env\.OPENAI_API_KEY/);
-
+// Check for API key
 if (!process.env.OPENAI_API_KEY) {
   console.error('❌ OPENAI_API_KEY not set in environment');
   process.exit(1);
 }
 
-console.log('✓ API key found:', process.env.OPENAI_API_KEY.substring(0, 20) + '...');
-console.log('✓ API key length:', process.env.OPENAI_API_KEY.length);
+console.log('✓ API key found: [REDACTED]');
+console.log('✓ API key configured');
 
 const config = {
   type: 'openai',

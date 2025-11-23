@@ -1,60 +1,9 @@
 /**
- * Configurable Logger for AI Coauthor using Winston
- * Respects logging level from integration config
+ * Configurable Logger for AI Coauthor
+ * Uses Astro's logger when available, falls back to console logging
  */
 
-import winston from 'winston';
-import type { LoggingConfig } from '../global';
 
-// Map our log levels to winston levels
-const LOG_LEVEL_MAP: Record<string, string> = {
-  none: 'silent',
-  error: 'error',
-  warn: 'warn',
-  info: 'info',
-  debug: 'debug',
-};
-
-/**
- * Create Winston logger with custom format
- * @deprecated Currently using Astro's logger instead. Reserved for future standalone use.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function createWinstonLogger(config: LoggingConfig): winston.Logger {
-  const prefix = config.prefix || 'ai-coauthor';
-  const level = LOG_LEVEL_MAP[config.level] || 'info';
-
-  return winston.createLogger({
-    level,
-    silent: config.level === 'none',
-    format: winston.format.combine(
-      winston.format.timestamp({ format: 'HH:mm:ss' }),
-      winston.format.printf(({ level, message, timestamp, component }) => {
-        const comp = component ? `:${component}` : '';
-        return `[${timestamp}] [${prefix}${comp}] ${level.toUpperCase()}: ${message}`;
-      })
-    ),
-    transports: [
-      new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.printf(({ level, message, component }) => {
-            const comp = component ? `:${component}` : '';
-            let emoji = '';
-            if (level.includes('error')) {
-              emoji = '✗';
-            } else if (level.includes('warn')) {
-              emoji = '⚠';
-            } else if (level.includes('info')) {
-              emoji = '→';
-            }
-            return `[${prefix}${comp}] ${emoji} ${message}`;
-          })
-        ),
-      }),
-    ],
-  });
-}
 
 /**
  * Logger wrapper that uses Astro's logger when available
@@ -65,9 +14,9 @@ export class Logger {
   error(component: string, message: string, ...meta: any[]): void {
     const astroLogger = getAstroLogger();
     if (astroLogger) {
-      // Include meta in the message if present
+      // Include meta in the message if present, but sanitize sensitive data
       const fullMessage = meta.length > 0 
-        ? `[${component}] ${message} ${meta.map(m => m instanceof Error ? m.message : JSON.stringify(m)).join(' ')}`
+        ? `[${component}] ${message} ${meta.map(m => m instanceof Error ? m.message : this.sanitize(m)).join(' ')}`
         : `[${component}] ${message}`;
       astroLogger.error(fullMessage);
       // Also log stack trace for errors
@@ -81,10 +30,28 @@ export class Logger {
     }
   }
 
+  private sanitize(data: any): string {
+    if (typeof data !== 'object' || data === null) {
+      return String(data);
+    }
+    // Redact sensitive fields
+    const sanitized = { ...data };
+    const sensitiveKeys = ['apiKey', 'api_key', 'token', 'password', 'secret', 'key'];
+    for (const key of Object.keys(sanitized)) {
+      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+        sanitized[key] = '[REDACTED]';
+      }
+    }
+    return JSON.stringify(sanitized);
+  }
+
   warn(component: string, message: string, ...meta: any[]): void {
     const astroLogger = getAstroLogger();
     if (astroLogger) {
-      astroLogger.warn(`[${component}] ${message}`);
+      const fullMessage = meta.length > 0 
+        ? `[${component}] ${message} ${meta.map(m => this.sanitize(m)).join(' ')}`
+        : `[${component}] ${message}`;
+      astroLogger.warn(fullMessage);
     } else {
       console.warn(`[ai-coauthor:${component}]`, message, ...meta);
     }
@@ -93,7 +60,10 @@ export class Logger {
   info(component: string, message: string, ...meta: any[]): void {
     const astroLogger = getAstroLogger();
     if (astroLogger) {
-      astroLogger.info(`[${component}] ${message}`);
+      const fullMessage = meta.length > 0 
+        ? `[${component}] ${message} ${meta.map(m => this.sanitize(m)).join(' ')}`
+        : `[${component}] ${message}`;
+      astroLogger.info(fullMessage);
     } else {
       console.log(`[ai-coauthor:${component}]`, message, ...meta);
     }
@@ -102,11 +72,14 @@ export class Logger {
   debug(component: string, message: string, ...meta: any[]): void {
     const astroLogger = getAstroLogger();
     if (astroLogger) {
+      const fullMessage = meta.length > 0 
+        ? `[${component}] ${message} ${meta.map(m => this.sanitize(m)).join(' ')}`
+        : `[${component}] ${message}`;
       // Astro logger might not have debug - use info instead
       if (typeof astroLogger.debug === 'function') {
-        astroLogger.debug(`[${component}] ${message}`);
+        astroLogger.debug(fullMessage);
       } else {
-        astroLogger.info(`[${component}] 🔍 ${message}`);
+        astroLogger.info(`🔍 ${fullMessage}`);
       }
     } else if (process.env.NODE_ENV === 'development') {
       // Debug logs only in development

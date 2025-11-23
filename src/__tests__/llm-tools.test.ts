@@ -6,7 +6,6 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { createFilesystemTools } from '../utils/llm/tools';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
 import * as tmp from 'tmp';
 describe('Filesystem Tools', () => {
   let testDir: string;
