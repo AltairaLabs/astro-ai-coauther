@@ -1,0 +1,10 @@
+name: "CodeQL Config"
+
+paths-ignore:
+  - '**/__tests__/**'
+  - '**/*.test.ts'
+  - '**/*.spec.ts'
+  - 'e2e/**'
+  - 'test-results/**'
+  - 'playwright-report/**'
+  - 'coverage/**'
