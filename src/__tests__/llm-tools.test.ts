@@ -7,17 +7,17 @@ import { createFilesystemTools } from '../utils/llm/tools';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
-
+import * as tmp from 'tmp';
 describe('Filesystem Tools', () => {
   let testDir: string;
   let tools: ReturnType<typeof createFilesystemTools>;
 
   beforeAll(async () => {
-    // Create a temporary test directory structure
-    testDir = path.join(os.tmpdir(), `llm-tools-test-${Date.now()}`);
+    // Securely create a temporary test directory structure
+    testDir = tmp.dirSync({ unsafeCleanup: true }).name;
     
-    await fs.mkdir(testDir, { recursive: true });
     await fs.mkdir(path.join(testDir, 'src'), { recursive: true });
+    await fs.mkdir(path.join(testDir, 'src', 'api'), { recursive: true });
     await fs.mkdir(path.join(testDir, 'src', 'api'), { recursive: true });
     await fs.mkdir(path.join(testDir, 'src', 'types'), { recursive: true });
     
