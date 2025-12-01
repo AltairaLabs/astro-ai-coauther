@@ -42,7 +42,7 @@ jobs:
 
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
       - name: Build docs site
         run: cd docs && npm run build -- --site https://coauthor.altairalabs.ai --base /
